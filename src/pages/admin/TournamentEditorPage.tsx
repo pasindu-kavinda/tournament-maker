@@ -18,7 +18,6 @@ interface Team {
     player1: string;
     player2: string | null;
     tournament_id: string;
-    order_index: number;
 }
 
 interface Match {
@@ -86,7 +85,7 @@ export default function TournamentEditorPage() {
                 .from('teams')
                 .select('*')
                 .eq('tournament_id', id)
-                .order('order_index', { ascending: true });
+                .order('created_at', { ascending: true });
 
             if (teamsError) throw teamsError;
             setTeams(teamsData || []);

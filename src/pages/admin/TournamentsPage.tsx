@@ -11,7 +11,7 @@ interface Tournament {
     created_at: string;
     date: string;
     user_id: string;
-    creator_email?: string;
+    creator_name?: string;
     team_count?: number;
     match_count?: number;
 }
@@ -47,14 +47,14 @@ export default function TournamentsPage() {
 
             if (tournamentsError) throw tournamentsError;
 
-            // Get user emails
+            // Get user data
             const userIds = [...new Set(tournamentsData?.map(t => t.user_id) || [])];
             const { data: usersData } = await supabase
                 .from('users')
-                .select('id, email')
+                .select('id, full_name')
                 .in('id', userIds);
 
-            const userMap = new Map(usersData?.map(u => [u.id, u.email]) || []);
+            const userMap = new Map(usersData?.map(u => [u.id, u.full_name || 'Unknown']) || []);
 
             // Get team and match counts for each tournament
             const tournamentsWithCounts = await Promise.all(
@@ -66,7 +66,7 @@ export default function TournamentsPage() {
 
                     return {
                         ...tournament,
-                        creator_email: userMap.get(tournament.user_id),
+                        creator_name: userMap.get(tournament.user_id),
                         team_count: teamCount || 0,
                         match_count: matchCount || 0,
                     };
@@ -97,7 +97,7 @@ export default function TournamentsPage() {
                 t =>
                     t.name.toLowerCase().includes(query) ||
                     t.venue.toLowerCase().includes(query) ||
-                    t.creator_email?.toLowerCase().includes(query) ||
+                    t.creator_name?.toLowerCase().includes(query) ||
                     t.id.toLowerCase().includes(query)
             );
         }

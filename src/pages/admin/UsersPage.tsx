@@ -4,7 +4,6 @@ import { Users, Search, Save, X, Mail, Calendar } from 'lucide-react';
 
 interface User {
     id: string;
-    email: string;
     full_name: string | null;
     created_at: string;
     last_sign_in_at: string | null;
@@ -31,7 +30,6 @@ export default function UsersPage() {
             const query = searchQuery.toLowerCase();
             const filtered = users.filter(
                 (user) =>
-                    user.email?.toLowerCase().includes(query) ||
                     user.full_name?.toLowerCase().includes(query) ||
                     user.id.toLowerCase().includes(query)
             );
@@ -44,7 +42,7 @@ export default function UsersPage() {
             setLoading(true);
             const { data, error } = await supabase
                 .from('users')
-                .select('id, email, full_name, created_at, last_sign_in_at')
+                .select('id, full_name, created_at, last_sign_in_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -133,7 +131,7 @@ export default function UsersPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                     type="text"
-                    placeholder="Search by name, email, or ID..."
+                    placeholder="Search by name or ID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -158,7 +156,7 @@ export default function UsersPage() {
                                     User
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Email
+                                    User ID
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Joined
@@ -198,15 +196,11 @@ export default function UsersPage() {
                                                             <span className="text-gray-400 italic">No name set</span>
                                                         )}
                                                     </div>
-                                                    <div className="text-xs text-gray-500 font-mono">{user.id.slice(0, 8)}...</div>
                                                 </div>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                <Mail className="h-4 w-4 text-gray-400" />
-                                                <span className="text-sm text-gray-900">{user.email}</span>
-                                            </div>
+                                            <div className="text-xs text-gray-500 font-mono">{user.id}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
@@ -267,9 +261,8 @@ export default function UsersPage() {
                         <div className="mt-2 text-sm text-blue-700">
                             <ul className="list-disc list-inside space-y-1">
                                 <li>Click "Edit Name" to update a user's display name</li>
-                                <li>Use the search bar to filter users by name, email, or ID</li>
+                                <li>Use the search bar to filter users by name or ID</li>
                                 <li>User data is synced from Supabase authentication</li>
-                                <li>Email addresses cannot be edited (managed by auth system)</li>
                             </ul>
                         </div>
                     </div>
