@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Trophy, Star, ArrowUp } from 'lucide-react';
 import { Match, Team, UserProfile } from '../types';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +11,7 @@ interface MatchCardProps {
 }
 
 function MatchCard({ match, onSubmitScores, tournamentStatus = 'pending' }: MatchCardProps) {
+  const navigate = useNavigate();
   const [scores, setScores] = useState<[number | null, number | null]>([null, null]);
   const [teamMembers, setTeamMembers] = useState<{ [key: string]: UserProfile[] }>({});
   const [realtimeMatch, setRealtimeMatch] = useState<Match>(match);
@@ -147,8 +149,21 @@ function MatchCard({ match, onSubmitScores, tournamentStatus = 'pending' }: Matc
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      {teamMembers[team.id]?.map(user => user.full_name).join(', ')}
+                    <div className="text-sm text-gray-500 mt-1 flex flex-wrap gap-1">
+                      {teamMembers[team.id]?.map((user, idx) => (
+                        <React.Fragment key={user.id}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/profile/${user.id}`);
+                            }}
+                            className="hover:text-indigo-600 hover:underline cursor-pointer"
+                          >
+                            {user.full_name}
+                          </button>
+                          {idx < teamMembers[team.id].length - 1 && <span>, </span>}
+                        </React.Fragment>
+                      ))}
                     </div>
                   </>
                 ) : (

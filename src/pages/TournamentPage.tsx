@@ -457,14 +457,20 @@ function TournamentPage({ user }: TournamentPageProps) {
         {isCompleted && (
           <div className="flex justify-center gap-4 mb-8">
             <button
-              onClick={() => setShowSummary(!showSummary)}
+              onClick={() => {
+                setShowSummary(!showSummary);
+                if (!showSummary) setShowBracketTree(false);
+              }}
               className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             >
               <FileText className="w-5 h-5" />
               {showSummary ? 'Show Matches' : 'Show Tournament Summary'}
             </button>
             <button
-              onClick={() => setShowBracketTree(!showBracketTree)}
+              onClick={() => {
+                setShowBracketTree(!showBracketTree);
+                if (!showBracketTree) setShowSummary(false);
+              }}
               className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               <Network className="w-5 h-5" />
@@ -473,7 +479,7 @@ function TournamentPage({ user }: TournamentPageProps) {
           </div>
         )}
 
-        {isCompleted && showSummary ? (
+        {isCompleted && showSummary && (
           <FinalMatchCard 
             finalMatch={finalMatch} 
             finalTeam={finalTeam} 
@@ -481,13 +487,17 @@ function TournamentPage({ user }: TournamentPageProps) {
             teams={teams}
             tournament={tournament}
           />
-        ) : isCompleted && showBracketTree ? (
+        )}
+        
+        {isCompleted && showBracketTree && (
           <BracketTree 
             matches={matches}
             finalMatch={finalMatch}
             teams={teams}
           />
-        ) : (
+        )}
+
+        <div className={isCompleted && (showSummary || showBracketTree) ? 'hidden' : ''}>
           <div className="grid lg:grid-cols-[350px,1fr] gap-8">
             <div className="space-y-6">
               {matches.length === 0 && isCreator && (
@@ -556,7 +566,7 @@ function TournamentPage({ user }: TournamentPageProps) {
               />
             </div>
           </div>
-        )}
+        </div>
 
         <Dialog open={showDeleteDialog} onClose={() => setShowDeleteDialog(false)}>
           <DialogTitle>Delete Tournament</DialogTitle>

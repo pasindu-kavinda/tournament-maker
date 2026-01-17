@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Team, UserProfile } from '../types';
 import { Trophy, Target, Award, TrendingUp } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +11,7 @@ interface TeamStatsProps {
 }
 
 function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamStatsProps) {
+  const navigate = useNavigate();
   const [teamMembers, setTeamMembers] = useState<{ [key: string]: UserProfile[] }>({});
   const [loading, setLoading] = useState(true);
   const [realtimeTeams, setRealtimeTeams] = useState<Team[]>(teams);
@@ -28,7 +30,7 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamSt
             table: 'teams',
             filter: `tournament_id=eq.${tournamentId}`
           },
-          async (payload) => {
+          async (_payload) => {
             const { data: updatedTeams } = await supabase
               .from('teams')
               .select('*')
@@ -72,7 +74,7 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamSt
 
   const sortedTeams = [...realtimeTeams].sort((a, b) => {
     if (b.wins !== a.wins) return b.wins - a.wins;
-    if (b.lead_points !== a.lead_points) return b.lead_points - a.lead_points;
+    if (b.leadPoints !== a.leadPoints) return b.leadPoints - a.leadPoints;
     return b.points - a.points;
   });
 
@@ -120,7 +122,7 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamSt
                 <div className="flex items-center gap-1">
                   <TrendingUp className="w-4 h-4 text-indigo-500" />
                   <span className="text-sm font-medium text-indigo-600">
-                    +{team.lead_points}
+                    +{team.leadPoints}
                   </span>
                 </div>
                 <div className="text-sm text-gray-500">
@@ -128,8 +130,22 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamSt
                 </div>
               </div>
             </div>
-            <div className="text-sm text-gray-500">
-              Players: {teamMembers[team.id]?.map(user => user.full_name).join(', ')}
+            <div className="text-sm text-gray-500 flex flex-wrap gap-1">
+              <span>Players:</span>
+              {teamMembers[team.id]?.map((user, idx) => (
+                <React.Fragment key={user.id}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/profile/${user.id}`);
+                    }}
+                    className="hover:text-indigo-600 hover:underline cursor-pointer"
+                  >
+                    {user.full_name}
+                  </button>
+                  {idx < teamMembers[team.id].length - 1 && <span>,</span>}
+                </React.Fragment>
+              ))}
             </div>
           </div>
         ))}
