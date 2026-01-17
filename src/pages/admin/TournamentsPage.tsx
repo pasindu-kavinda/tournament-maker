@@ -47,14 +47,18 @@ export default function TournamentsPage() {
 
             if (tournamentsError) throw tournamentsError;
 
-            // Get user data
-            const userIds = [...new Set(tournamentsData?.map(t => t.user_id) || [])];
-            const { data: usersData } = await supabase
-                .from('users')
-                .select('id, full_name')
-                .in('id', userIds);
+            // Get user data - filter out null/undefined user_ids
+            const userIds = [...new Set(tournamentsData?.map(t => t.user_id).filter(id => id) || [])];
+            
+            let userMap = new Map<string, string>();
+            if (userIds.length > 0) {
+                const { data: usersData } = await supabase
+                    .from('users')
+                    .select('id, full_name')
+                    .in('id', userIds);
 
-            const userMap = new Map(usersData?.map(u => [u.id, u.full_name || 'Unknown']) || []);
+                userMap = new Map(usersData?.map(u => [u.id, u.full_name || 'Unknown']) || []);
+            }
 
             // Get team and match counts for each tournament
             const tournamentsWithCounts = await Promise.all(
@@ -293,7 +297,7 @@ export default function TournamentsPage() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Calendar className="h-4 w-4 text-gray-400" />
-                                            <span>{formatDate(tournament.date)}</span>
+                                            <span>Created: {formatDate(tournament.created_at)}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <UsersIcon className="h-4 w-4 text-gray-400" />
@@ -301,12 +305,12 @@ export default function TournamentsPage() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-gray-400">Created by:</span>
-                                            <span className="font-medium">{tournament.creator_email || 'Unknown'}</span>
+                                            <span className="font-medium">{tournament.creator_name || 'Unknown'}</span>
                                         </div>
                                     </div>
 
                                     <div className="mt-2 text-xs text-gray-400">
-                                        ID: {tournament.id.slice(0, 8)}... • Created: {formatDate(tournament.created_at)}
+                                        ID: {tournament.id.slice(0, 8)}...
                                     </div>
                                 </div>
 

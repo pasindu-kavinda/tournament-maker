@@ -6,7 +6,6 @@ interface User {
     id: string;
     full_name: string | null;
     created_at: string;
-    last_sign_in_at: string | null;
 }
 
 export default function UsersPage() {
@@ -42,7 +41,7 @@ export default function UsersPage() {
             setLoading(true);
             const { data, error } = await supabase
                 .from('users')
-                .select('id, full_name, created_at, last_sign_in_at')
+                .select('id, full_name, created_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -84,6 +83,7 @@ export default function UsersPage() {
 
             setEditingUserId(null);
             setEditedName('');
+            alert('User updated successfully!');
         } catch (error) {
             console.error('Error saving user:', error);
             alert('Failed to save user. Please try again.');
@@ -161,9 +161,6 @@ export default function UsersPage() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Joined
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Last Sign In
-                                </th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions
                                 </th>
@@ -172,7 +169,7 @@ export default function UsersPage() {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
                                         {searchQuery ? 'No users found matching your search.' : 'No users yet.'}
                                     </td>
                                 </tr>
@@ -207,11 +204,6 @@ export default function UsersPage() {
                                                 <Calendar className="h-4 w-4 text-gray-400" />
                                                 <span className="text-sm text-gray-500">{formatDate(user.created_at)}</span>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-gray-500">
-                                                {formatDate(user.last_sign_in_at)}
-                                            </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             {editingUserId === user.id ? (
