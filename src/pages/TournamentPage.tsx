@@ -7,6 +7,7 @@ import TeamStats from '../components/TeamStats';
 import { Team, Match, UserProfile } from '../types';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { showPushNotification } from '@/lib/notifications';
 import {
   generateRoundRobinMatches,
   calculateTeamStats,
@@ -45,6 +46,8 @@ function TournamentPage({ user }: TournamentPageProps) {
       loadTeamMembers();
     }
   }, [teams]);
+
+
 
   const loadTeamMembers = async () => {
     const members: { [key: string]: UserProfile[] } = {};
@@ -141,6 +144,13 @@ function TournamentPage({ user }: TournamentPageProps) {
 
     if (newTeam) {
       setTeams([...teams, newTeam]);
+      
+      // Send push notification to all tournament members
+      showPushNotification(
+        'Team Added! 👥',
+        `${team.name} joined ${tournament?.name}`,
+        tournamentId
+      );
     }
   };
 
@@ -187,6 +197,19 @@ function TournamentPage({ user }: TournamentPageProps) {
         round: match.round
       }));
       setMatches(formattedMatches);
+
+      // Update tournament status to in_progress
+      await supabase
+        .from('tournaments')
+        .update({ status: 'in_progress' })
+        .eq('id', tournamentId);
+
+      // Send push notification to all tournament members
+      showPushNotification(
+        'Tournament Started! 🎾',
+        `${tournament?.name} has started! ${generatedMatches.length} matches have been generated. Good luck!`,
+        tournamentId
+      );
     }
 
     setIsProcessing(false);
@@ -237,11 +260,38 @@ function TournamentPage({ user }: TournamentPageProps) {
       })
       .eq('id', matchId);
 
+    // Send notifications to players in both teams
+    const team1 = match.teams[0];
+    const team2 = match.teams[1];
+    if (team1 && team2) {
+      const winnerTeam = score1 > score2 ? team1 : team2;
+      const loserTeam = score1 > score2 ? team2 : team1;
+      const winnerScore = Math.max(score1, score2);
+      const loserScore = Math.min(score1, score2);
+
+      // Send push notification to all tournament members
+      showPushNotification(
+        'Match Completed! 🏸',
+        `${winnerTeam.name} defeated ${loserTeam.name} (${winnerScore}-${loserScore})`,
+        tournamentId
+      );
+    }
+
     if (match.round === 'final') {
       await supabase
         .from('tournaments')
         .update({ status: 'completed' })
         .eq('id', tournamentId);
+
+      // Send push notification to all tournament members
+      const winnerTeam = score1 > score2 ? team1 : team2;
+      if (winnerTeam) {
+        showPushNotification(
+          'Tournament Completed! 🏆',
+          `${winnerTeam.name} is the champion!`,
+          tournamentId
+        );
+      }
     }
 
     if (match.round === 'regular') {
@@ -300,6 +350,16 @@ function TournamentPage({ user }: TournamentPageProps) {
               round: createdFinalMatch.round
             };
             setFinalMatch(formattedFinalMatch);
+
+            // Send push notification to all tournament members
+            const team1Name = createdFinalMatch.team1?.name || 'Team 1';
+            const team2Name = createdFinalMatch.team2?.name || 'Team 2';
+            
+            showPushNotification(
+              'Finals Ready! 🏆',
+              `${team1Name} vs ${team2Name} - The championship match is here!`,
+              tournamentId
+            );
           }
         }
       }

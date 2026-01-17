@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import TournamentPage from './pages/TournamentPage';
 import StatsPage from './pages/StatsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import TournamentPublicView from './pages/TournamentPublicView';
 import Auth from './components/Auth';
 import { User } from '@supabase/supabase-js';
 
@@ -39,6 +40,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/tournament/:id/view" element={<TournamentPublicView />} />
         {!user ? (
           <>
             <Route path="*" element={<Auth />} />

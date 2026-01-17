@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Users, Medal, TrendingUp, ArrowLeft, User as UserIcon } from 'lucide-react';
+import { Trophy, Users, Medal, TrendingUp, ArrowLeft, User as UserIcon, Download } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface StatsPageProps {
     user: User;
@@ -49,6 +50,59 @@ function StatsPage({ user }: StatsPageProps) {
     const [duoStatsLoaded, setDuoStatsLoaded] = useState(false);
     const [teamStatsLoaded, setTeamStatsLoaded] = useState(false);
 
+    // CSV Export function
+    const exportToCSV = (data: any[], filename: string, headers: string[]) => {
+        const csvContent = [
+            headers.join(','),
+            ...data.map(row => headers.map(header => {
+                const value = row[header] ?? '';
+                return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
+            }).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const exportPlayerStats = () => {
+        const data = playerStats.map(p => ({
+            userName: p.userName,
+            finalsAppearances: p.finalsAppearances,
+            finalsWins: p.finalsWins,
+            winRate: p.winRate.toFixed(2),
+            tournaments: p.tournaments
+        }));
+        exportToCSV(data, 'player-stats.csv', ['userName', 'finalsAppearances', 'finalsWins', 'winRate', 'tournaments']);
+    };
+
+    const exportDuoStats = () => {
+        const data = duoStats.map(d => ({
+            partnership: `${d.player1Name} & ${d.player2Name}`,
+            finalsAppearances: d.finalsAppearances,
+            finalsWins: d.finalsWins,
+            winRate: d.winRate.toFixed(2)
+        }));
+        exportToCSV(data, 'duo-stats.csv', ['partnership', 'finalsAppearances', 'finalsWins', 'winRate']);
+    };
+
+    const exportTeamStats = () => {
+        const data = teamNameStats.map(t => ({
+            teamName: t.teamName,
+            finalsAppearances: t.finalsAppearances,
+            totalWins: t.totalWins,
+            tournamentsPlayed: t.tournamentsPlayed,
+            totalPoints: t.totalPoints
+        }));
+        exportToCSV(data, 'team-stats.csv', ['teamName', 'finalsAppearances', 'totalWins', 'tournamentsPlayed', 'totalPoints']);
+    };
+
     useEffect(() => {
         // Load only the active tab data
         loadTabData(activeTab);
@@ -61,7 +115,7 @@ function StatsPage({ user }: StatsPageProps) {
         if (tab === 'teams' && teamStatsLoaded) return;
 
         setLoadingTab(tab);
-        
+
         try {
             if (tab === 'players') {
                 await loadPlayerStats();
@@ -395,8 +449,8 @@ function StatsPage({ user }: StatsPageProps) {
                     <button
                         onClick={() => setActiveTab('players')}
                         className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${activeTab === 'players'
-                                ? 'bg-indigo-600 text-white shadow-lg'
-                                : 'bg-white text-gray-600 hover:bg-gray-50'
+                            ? 'bg-indigo-600 text-white shadow-lg'
+                            : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                     >
                         <Medal className="w-5 h-5" />
@@ -405,8 +459,8 @@ function StatsPage({ user }: StatsPageProps) {
                     <button
                         onClick={() => setActiveTab('duos')}
                         className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${activeTab === 'duos'
-                                ? 'bg-indigo-600 text-white shadow-lg'
-                                : 'bg-white text-gray-600 hover:bg-gray-50'
+                            ? 'bg-indigo-600 text-white shadow-lg'
+                            : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                     >
                         <Users className="w-5 h-5" />
@@ -415,8 +469,8 @@ function StatsPage({ user }: StatsPageProps) {
                     <button
                         onClick={() => setActiveTab('teams')}
                         className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${activeTab === 'teams'
-                                ? 'bg-indigo-600 text-white shadow-lg'
-                                : 'bg-white text-gray-600 hover:bg-gray-50'
+                            ? 'bg-indigo-600 text-white shadow-lg'
+                            : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                     >
                         <Trophy className="w-5 h-5" />
@@ -426,12 +480,23 @@ function StatsPage({ user }: StatsPageProps) {
 
                 {/* Player Stats Tab */}
                 {activeTab === 'players' && (
-                    <div className="max-w-4xl mx-auto">
-                        <div className="bg-white rounded-xl shadow-lg p-6">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                <Medal className="w-6 h-6 text-indigo-600" />
-                                Player Performance in Finals
-                            </h2>
+                    <div className="max-w-6xl mx-auto space-y-6">
+                        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+                                    <Medal className="w-6 h-6 text-indigo-600" />
+                                    Top Players
+                                </h2>
+                                {playerStats.length > 0 && (
+                                    <button
+                                        onClick={exportPlayerStats}
+                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition min-h-[44px]"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        Export CSV
+                                    </button>
+                                )}
+                            </div>
 
                             {loadingTab === 'players' ? (
                                 <div className="text-center py-12">
@@ -449,23 +514,23 @@ function StatsPage({ user }: StatsPageProps) {
                                         <div
                                             key={player.userId}
                                             className={`p-4 rounded-lg border-2 ${index === 0
-                                                    ? 'bg-yellow-50 border-yellow-400'
-                                                    : index === 1
-                                                        ? 'bg-gray-50 border-gray-400'
-                                                        : index === 2
-                                                            ? 'bg-orange-50 border-orange-400'
-                                                            : 'bg-white border-gray-200'
+                                                ? 'bg-yellow-50 border-yellow-400'
+                                                : index === 1
+                                                    ? 'bg-gray-50 border-gray-400'
+                                                    : index === 2
+                                                        ? 'bg-orange-50 border-orange-400'
+                                                        : 'bg-white border-gray-200'
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${index === 0
-                                                            ? 'bg-yellow-400 text-yellow-900'
-                                                            : index === 1
-                                                                ? 'bg-gray-400 text-gray-900'
-                                                                : index === 2
-                                                                    ? 'bg-orange-400 text-orange-900'
-                                                                    : 'bg-indigo-100 text-indigo-600'
+                                                        ? 'bg-yellow-400 text-yellow-900'
+                                                        : index === 1
+                                                            ? 'bg-gray-400 text-gray-900'
+                                                            : index === 2
+                                                                ? 'bg-orange-400 text-orange-900'
+                                                                : 'bg-indigo-100 text-indigo-600'
                                                         }`}>
                                                         {index + 1}
                                                     </div>
@@ -502,12 +567,23 @@ function StatsPage({ user }: StatsPageProps) {
 
                 {/* Duo Stats Tab */}
                 {activeTab === 'duos' && (
-                    <div className="max-w-4xl mx-auto">
-                        <div className="bg-white rounded-xl shadow-lg p-6">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                <Users className="w-6 h-6 text-indigo-600" />
-                                Top Performing Duos in Finals
-                            </h2>
+                    <div className="max-w-6xl mx-auto">
+                        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+                                    <Users className="w-6 h-6 text-indigo-600" />
+                                    Top Duo Partnerships
+                                </h2>
+                                {duoStats.length > 0 && (
+                                    <button
+                                        onClick={exportDuoStats}
+                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition min-h-[44px]"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        Export CSV
+                                    </button>
+                                )}
+                            </div>
 
                             {loadingTab === 'duos' ? (
                                 <div className="text-center py-12">
@@ -525,23 +601,23 @@ function StatsPage({ user }: StatsPageProps) {
                                         <div
                                             key={`${duo.player1Id}_${duo.player2Id}`}
                                             className={`p-4 rounded-lg border-2 ${index === 0
-                                                    ? 'bg-yellow-50 border-yellow-400'
-                                                    : index === 1
-                                                        ? 'bg-gray-50 border-gray-400'
-                                                        : index === 2
-                                                            ? 'bg-orange-50 border-orange-400'
-                                                            : 'bg-white border-gray-200'
+                                                ? 'bg-yellow-50 border-yellow-400'
+                                                : index === 1
+                                                    ? 'bg-gray-50 border-gray-400'
+                                                    : index === 2
+                                                        ? 'bg-orange-50 border-orange-400'
+                                                        : 'bg-white border-gray-200'
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${index === 0
-                                                            ? 'bg-yellow-400 text-yellow-900'
-                                                            : index === 1
-                                                                ? 'bg-gray-400 text-gray-900'
-                                                                : index === 2
-                                                                    ? 'bg-orange-400 text-orange-900'
-                                                                    : 'bg-indigo-100 text-indigo-600'
+                                                        ? 'bg-yellow-400 text-yellow-900'
+                                                        : index === 1
+                                                            ? 'bg-gray-400 text-gray-900'
+                                                            : index === 2
+                                                                ? 'bg-orange-400 text-orange-900'
+                                                                : 'bg-indigo-100 text-indigo-600'
                                                         }`}>
                                                         {index + 1}
                                                     </div>
@@ -578,12 +654,23 @@ function StatsPage({ user }: StatsPageProps) {
 
                 {/* Team Names Tab */}
                 {activeTab === 'teams' && (
-                    <div className="max-w-4xl mx-auto">
-                        <div className="bg-white rounded-xl shadow-lg p-6">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                <Trophy className="w-6 h-6 text-indigo-600" />
-                                Team Name Performance
-                            </h2>
+                    <div className="max-w-6xl mx-auto">
+                        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
+                                    <Trophy className="w-6 h-6 text-indigo-600" />
+                                    Team Name Performance
+                                </h2>
+                                {teamNameStats.length > 0 && (
+                                    <button
+                                        onClick={exportTeamStats}
+                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition min-h-[44px]"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        Export CSV
+                                    </button>
+                                )}
+                            </div>
 
                             {loadingTab === 'teams' ? (
                                 <div className="text-center py-12">
@@ -601,23 +688,23 @@ function StatsPage({ user }: StatsPageProps) {
                                         <div
                                             key={team.teamName}
                                             className={`p-4 rounded-lg border-2 ${index === 0
-                                                    ? 'bg-yellow-50 border-yellow-400'
-                                                    : index === 1
-                                                        ? 'bg-gray-50 border-gray-400'
-                                                        : index === 2
-                                                            ? 'bg-orange-50 border-orange-400'
-                                                            : 'bg-white border-gray-200'
+                                                ? 'bg-yellow-50 border-yellow-400'
+                                                : index === 1
+                                                    ? 'bg-gray-50 border-gray-400'
+                                                    : index === 2
+                                                        ? 'bg-orange-50 border-orange-400'
+                                                        : 'bg-white border-gray-200'
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${index === 0
-                                                            ? 'bg-yellow-400 text-yellow-900'
-                                                            : index === 1
-                                                                ? 'bg-gray-400 text-gray-900'
-                                                                : index === 2
-                                                                    ? 'bg-orange-400 text-orange-900'
-                                                                    : 'bg-indigo-100 text-indigo-600'
+                                                        ? 'bg-yellow-400 text-yellow-900'
+                                                        : index === 1
+                                                            ? 'bg-gray-400 text-gray-900'
+                                                            : index === 2
+                                                                ? 'bg-orange-400 text-orange-900'
+                                                                : 'bg-indigo-100 text-indigo-600'
                                                         }`}>
                                                         {index + 1}
                                                     </div>
