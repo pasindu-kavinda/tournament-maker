@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Trophy, Users, Target, MapPin, FileText, User as UserIcon, Trash2 } from 'lucide-react';
 import TeamInput from '../components/TeamInput';
@@ -114,7 +114,7 @@ function TournamentPage({ user }: TournamentPageProps) {
         if (finalMatchData) {
           setFinalMatch(finalMatchData);
           if (finalMatchData.winner_id) {
-            const winningTeam = finalMatchData.teams.find(t => t.id === finalMatchData.winner_id);
+            const winningTeam = finalMatchData.teams.find((t: any) => t?.id === finalMatchData.winner_id);
             if (winningTeam) setFinalTeam(winningTeam);
           }
         }
@@ -244,9 +244,6 @@ function TournamentPage({ user }: TournamentPageProps) {
         .eq('id', tournamentId);
     }
 
-    // Reload match data to ensure we have the latest state
-    await loadTournament();
-
     if (match.round === 'regular') {
       const updatedMatches = matches.map(m =>
         m.id === matchId
@@ -266,18 +263,24 @@ function TournamentPage({ user }: TournamentPageProps) {
       const allRegularMatchesCompleted = updatedMatches.every(m => m.isCompleted);
 
       if (allRegularMatchesCompleted && !finalMatch) {
-        const topTeams = getTopTeams(teams, 2);
-        const newFinalMatch = generateFinalMatch(topTeams);
+        const { data: freshTeamsData } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('tournament_id', tournamentId);
+        
+        if (freshTeamsData) {
+          const topTeams = getTopTeams(freshTeamsData, 2);
+          const newFinalMatch = generateFinalMatch(topTeams);
 
-        const { data: createdFinalMatch } = await supabase
-          .from('matches')
-          .insert({
-            tournament_id: tournamentId,
-            team1_id: newFinalMatch.teams[0]?.id,
-            team2_id: newFinalMatch.teams[1]?.id,
-            match_number: 1,
-            round: 'final'
-          })
+          const { data: createdFinalMatch } = await supabase
+            .from('matches')
+            .insert({
+              tournament_id: tournamentId,
+              team1_id: newFinalMatch.teams[0]?.id,
+              team2_id: newFinalMatch.teams[1]?.id,
+              match_number: 1,
+              round: 'final'
+            })
           .select(`
             *,
             team1:teams!matches_team1_id_fkey(*),
@@ -285,18 +288,19 @@ function TournamentPage({ user }: TournamentPageProps) {
           `)
           .single();
 
-        if (createdFinalMatch) {
-          const formattedFinalMatch = {
-            ...createdFinalMatch,
-            teams: [createdFinalMatch.team1, createdFinalMatch.team2],
-            scores: [createdFinalMatch.team1_score, createdFinalMatch.team2_score],
-            isCompleted: createdFinalMatch.is_completed,
-            winner: createdFinalMatch.winner_id,
-            pointDifference: createdFinalMatch.point_difference,
-            matchNumber: createdFinalMatch.match_number,
-            round: createdFinalMatch.round
-          };
-          setFinalMatch(formattedFinalMatch);
+          if (createdFinalMatch) {
+            const formattedFinalMatch = {
+              ...createdFinalMatch,
+              teams: [createdFinalMatch.team1, createdFinalMatch.team2],
+              scores: [createdFinalMatch.team1_score, createdFinalMatch.team2_score],
+              isCompleted: createdFinalMatch.is_completed,
+              winner: createdFinalMatch.winner_id,
+              pointDifference: createdFinalMatch.point_difference,
+              matchNumber: createdFinalMatch.match_number,
+              round: createdFinalMatch.round
+            };
+            setFinalMatch(formattedFinalMatch);
+          }
         }
       }
     } else if (match.round === 'final') {

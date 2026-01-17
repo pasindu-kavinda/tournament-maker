@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Users, MapPin, User as UserIcon } from 'lucide-react';
-import TeamInput from '../components/TeamInput';
-import { Team } from '../types';
+import { Trophy, MapPin, User as UserIcon } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport, ToastClose } from '../components/Toast';
@@ -28,7 +26,6 @@ const VENUES = [
 
 function HomePage({ user }: HomePageProps) {
   const navigate = useNavigate();
-  const [teams, setTeams] = useState<Team[]>([]);
   const [tournamentName, setTournamentName] = useState('');
   const [venue, setVenue] = useState(VENUES[0]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
