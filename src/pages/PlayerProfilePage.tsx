@@ -53,20 +53,18 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
     const loadPlayerStats = async () => {
         setLoading(true);
 
-        // Get player name
-        const { data: userData } = await supabase
-            .from('teams')
-            .select('members')
-            .contains('members', [targetUserId])
-            .limit(1)
+        // Get player name from users table
+        const { data: userProfile } = await supabase
+            .from('users')
+            .select('full_name')
+            .eq('id', targetUserId)
             .single();
 
-        if (userData) {
-            const { data: userProfile } = await supabase.auth.admin.getUserById(targetUserId);
-            setPlayerName(userProfile?.user?.user_metadata?.full_name || 'Player');
+        if (userProfile) {
+            setPlayerName(userProfile.full_name || 'Player');
         }
 
-        // Get all teams player is part of
+        // Get all teams player is part of with tournament info
         const { data: teams } = await supabase
             .from('teams')
             .select(`
@@ -125,7 +123,7 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
             // Get all teams in this tournament
             const { data: allTeams } = await supabase
                 .from('teams')
-                .select('id, wins, points, lead_points')
+                .select('id, wins, points, leadPoints')
                 .eq('tournament_id', team.tournament_id)
                 .order('wins', { ascending: false });
 
@@ -133,7 +131,7 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
                 // Sort teams properly
                 const sortedTeams = allTeams.sort((a, b) => {
                     if (b.wins !== a.wins) return b.wins - a.wins;
-                    if (b.lead_points !== a.lead_points) return b.lead_points - a.lead_points;
+                    if (b.leadPoints !== a.leadPoints) return b.leadPoints - a.leadPoints;
                     return b.points - a.points;
                 });
 

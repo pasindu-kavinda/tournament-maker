@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trophy, Users, Target, MapPin, FileText, User as UserIcon, Trash2, TrendingUp, Network } from 'lucide-react';
+import { Trophy, Users, Target, MapPin, FileText, User as UserIcon, Trash2, TrendingUp, Network, Menu, X } from 'lucide-react';
 import TeamInput from '../components/TeamInput';
 import Bracket from '../components/Bracket';
 import BracketTree from '../components/BracketTree';
@@ -36,6 +36,7 @@ function TournamentPage({ user }: TournamentPageProps) {
   const [teamMembers, setTeamMembers] = useState<{ [key: string]: UserProfile[] }>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showBracketTree, setShowBracketTree] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     if (tournamentId) {
@@ -399,7 +400,8 @@ function TournamentPage({ user }: TournamentPageProps) {
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100">
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-12">
-          <div className="flex items-center justify-between mb-4">
+          {/* Desktop Header */}
+          <div className="hidden md:flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate('/')}
@@ -424,12 +426,79 @@ function TournamentPage({ user }: TournamentPageProps) {
                 <span>{displayName}</span>
               </div>
               <button
+                onClick={() => navigate('/profile')}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                My Profile
+              </button>
+              <button
                 onClick={handleSignOut}
                 className="text-gray-600 hover:text-gray-800"
               >
                 Sign Out
               </button>
             </div>
+          </div>
+
+          {/* Mobile Header */}
+          <div className="md:hidden">
+            <div className="flex items-center justify-between mb-4">
+              <Trophy className="w-10 h-10 text-indigo-600" />
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="p-2 text-gray-600 hover:text-gray-800"
+              >
+                {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+
+            {/* Mobile Menu */}
+            {showMobileMenu && (
+              <div className="bg-white rounded-lg shadow-lg p-4 mb-4 space-y-3">
+                <div className="flex items-center gap-2 px-3 py-2 text-gray-700 border-b">
+                  <UserIcon className="w-4 h-4" />
+                  <span className="font-medium">{displayName}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    navigate('/');
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded transition"
+                >
+                  ← Back to Tournaments
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/stats');
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-indigo-600 hover:bg-indigo-50 rounded transition"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  <span>View Stats</span>
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/profile');
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded transition"
+                >
+                  <UserIcon className="w-4 h-4" />
+                  <span>My Profile</span>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSignOut();
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded transition"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
           </div>
           <h1 className="text-4xl font-bold text-gray-800 mb-2">{tournament.name}</h1>
           <div className="flex items-center justify-center gap-4 text-gray-600">
