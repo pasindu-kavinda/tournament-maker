@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, MapPin, User as UserIcon, TrendingUp, Menu, X } from 'lucide-react';
+import { Trophy, MapPin, User as UserIcon, TrendingUp, Menu, X, Shield } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { useAdmin } from '@/contexts/AdminContext';
 import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport, ToastClose } from '../components/Toast';
 
 interface HomePageProps {
@@ -26,6 +27,7 @@ const VENUES = [
 
 function HomePage({ user }: HomePageProps) {
   const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
   const [tournamentName, setTournamentName] = useState('');
   const [venue, setVenue] = useState(VENUES[0]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -104,6 +106,15 @@ function HomePage({ user }: HomePageProps) {
                   <UserIcon className="w-4 h-4" />
                   <span>{displayName}</span>
                 </div>
+                {isAdmin && (
+                  <button
+                    onClick={() => navigate('/admin')}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-sm"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="font-medium">Admin</span>
+                  </button>
+                )}
                 <button
                   onClick={() => navigate('/profile')}
                   className="text-gray-600 hover:text-gray-800"
@@ -164,6 +175,18 @@ function HomePage({ user }: HomePageProps) {
                     <UserIcon className="w-4 h-4" />
                     <span>My Profile</span>
                   </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        navigate('/admin');
+                        setShowMobileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-indigo-600 hover:bg-indigo-50 rounded transition font-medium"
+                    >
+                      <Shield className="w-4 h-4" />
+                      <span>Admin Panel</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       navigate('/reset-password');

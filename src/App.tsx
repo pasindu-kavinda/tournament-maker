@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { AdminProvider } from './contexts/AdminContext';
+import AdminLayout from './components/admin/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import UsersPage from './pages/admin/UsersPage';
+import TournamentsPage from './pages/admin/TournamentsPage';
+import TournamentEditorPage from './pages/admin/TournamentEditorPage';
 import HomePage from './pages/HomePage';
 import TournamentPage from './pages/TournamentPage';
 import StatsPage from './pages/StatsPage';
@@ -39,24 +45,35 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/tournament/:id/view" element={<TournamentPublicView />} />
-        {!user ? (
-          <>
-            <Route path="*" element={<Auth />} />
-          </>
-        ) : (
-          <>
-            <Route path="/" element={<HomePage user={user} />} />
-            <Route path="/stats" element={<StatsPage user={user} />} />
-            <Route path="/tournament/:id" element={<TournamentPage user={user} />} />
-            <Route path="/profile" element={<PlayerProfilePage user={user} />} />
-            <Route path="/profile/:userId" element={<PlayerProfilePage user={user} />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </>
-        )}
-      </Routes>
+      <AdminProvider user={user}>
+        <Routes>
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/tournament/:id/view" element={<TournamentPublicView />} />
+          {!user ? (
+            <>
+              <Route path="*" element={<Auth />} />
+            </>
+          ) : (
+            <>
+              <Route path="/" element={<HomePage user={user} />} />
+              <Route path="/stats" element={<StatsPage user={user} />} />
+              <Route path="/tournament/:id" element={<TournamentPage user={user} />} />
+              <Route path="/profile" element={<PlayerProfilePage user={user} />} />
+              <Route path="/profile/:userId" element={<PlayerProfilePage user={user} />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<UsersPage />} />
+                <Route path="tournaments" element={<TournamentsPage />} />
+                <Route path="tournament/:id" element={<TournamentEditorPage />} />
+              </Route>
+              
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </>
+          )}
+        </Routes>
+      </AdminProvider>
     </BrowserRouter>
   );
 }
