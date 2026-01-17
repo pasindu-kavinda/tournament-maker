@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import HomePage from './pages/HomePage';
 import TournamentPage from './pages/TournamentPage';
+import StatsPage from './pages/StatsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import Auth from './components/Auth';
 import { User } from '@supabase/supabase-js';
@@ -45,6 +46,7 @@ function App() {
         ) : (
           <>
             <Route path="/" element={<HomePage user={user} />} />
+            <Route path="/stats" element={<StatsPage user={user} />} />
             <Route path="/tournament/:id" element={<TournamentPage user={user} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </>

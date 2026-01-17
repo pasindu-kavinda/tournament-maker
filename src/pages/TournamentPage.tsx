@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trophy, Users, Target, MapPin, FileText, User as UserIcon, Trash2 } from 'lucide-react';
+import { Trophy, Users, Target, MapPin, FileText, User as UserIcon, Trash2, TrendingUp } from 'lucide-react';
 import TeamInput from '../components/TeamInput';
 import Bracket from '../components/Bracket';
 import TeamStats from '../components/TeamStats';
@@ -338,12 +338,21 @@ function TournamentPage({ user }: TournamentPageProps) {
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-12">
           <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-800"
-            >
-              ← Back to Tournaments
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/')}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                ← Back to Tournaments
+              </button>
+              <button
+                onClick={() => navigate('/stats')}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition shadow-sm text-sm"
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span>Stats</span>
+              </button>
+            </div>
             <div className="flex items-center justify-center flex-1">
               <Trophy className="w-12 h-12 text-indigo-600" />
             </div>
