@@ -78,7 +78,9 @@ export default function TournamentEditorPage() {
             setEditedName(tournamentData.name);
             setEditedVenue(tournamentData.venue);
             setEditedStatus(tournamentData.status);
-            setEditedDate(tournamentData.date);
+            // Use created_at if date is not set, format it properly for date input
+            const dateValue = tournamentData.date || tournamentData.created_at.split('T')[0];
+            setEditedDate(dateValue);
 
             // Load teams
             const { data: teamsData, error: teamsError } = await supabase

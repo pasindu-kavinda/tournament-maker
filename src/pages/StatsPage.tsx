@@ -659,7 +659,15 @@ function StatsPage({ user }: StatsPageProps) {
                                                         {index + 1}
                                                     </div>
                                                     <div>
-                                                        <div className="font-semibold text-gray-800">{player.userName}</div>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate(`/profile/${player.userId}`);
+                                                            }}
+                                                            className="font-semibold text-gray-800 hover:text-indigo-600 transition text-left"
+                                                        >
+                                                            {player.userName}
+                                                        </button>
                                                         <div className="text-sm text-gray-500">
                                                             {player.tournaments} tournament{player.tournaments !== 1 ? 's' : ''}
                                                         </div>
@@ -747,7 +755,25 @@ function StatsPage({ user }: StatsPageProps) {
                                                     </div>
                                                     <div>
                                                         <div className="font-semibold text-gray-800">
-                                                            {duo.player1Name} & {duo.player2Name}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    navigate(`/profile/${duo.player1Id}`);
+                                                                }}
+                                                                className="hover:text-indigo-600 transition"
+                                                            >
+                                                                {duo.player1Name}
+                                                            </button>
+                                                            {' & '}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    navigate(`/profile/${duo.player2Id}`);
+                                                                }}
+                                                                className="hover:text-indigo-600 transition"
+                                                            >
+                                                                {duo.player2Name}
+                                                            </button>
                                                         </div>
                                                         <div className="text-sm text-gray-500">Partnership</div>
                                                     </div>
