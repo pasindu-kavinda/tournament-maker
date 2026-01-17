@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Users, Medal, TrendingUp, ArrowLeft, User as UserIcon, Download } from 'lucide-react';
+import { Trophy, Users, Medal, TrendingUp, ArrowLeft, User as UserIcon, Download, Filter } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -40,6 +40,7 @@ function StatsPage({ user }: StatsPageProps) {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'players' | 'duos' | 'teams'>('players');
     const [loadingTab, setLoadingTab] = useState<string | null>(null);
+    const [dateFilter, setDateFilter] = useState<'all' | 'thisYear' | 'lastYear' | 'thisMonth' | 'lastMonth'>('all');
 
     const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
     const [duoStats, setDuoStats] = useState<DuoStats[]>([]);
@@ -103,10 +104,36 @@ function StatsPage({ user }: StatsPageProps) {
         exportToCSV(data, 'team-stats.csv', ['teamName', 'finalsAppearances', 'totalWins', 'tournamentsPlayed', 'totalPoints']);
     };
 
+    const getDateRange = () => {
+        const now = new Date();
+        let startDate: Date | null = null;
+        let endDate = now;
+        
+        if (dateFilter === 'thisYear') {
+            startDate = new Date(now.getFullYear(), 0, 1);
+        } else if (dateFilter === 'lastYear') {
+            startDate = new Date(now.getFullYear() - 1, 0, 1);
+            endDate = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
+        } else if (dateFilter === 'thisMonth') {
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        } else if (dateFilter === 'lastMonth') {
+            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            startDate = lastMonth;
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        }
+        
+        return { startDate, endDate };
+    };
+
     useEffect(() => {
+        // Reset cache flags when date filter changes to ensure fresh data
+        setPlayerStatsLoaded(false);
+        setDuoStatsLoaded(false);
+        setTeamStatsLoaded(false);
+        
         // Load only the active tab data
         loadTabData(activeTab);
-    }, [activeTab]);
+    }, [activeTab, dateFilter]);
 
     const loadTabData = async (tab: 'players' | 'duos' | 'teams') => {
         // Check if already loaded
@@ -133,16 +160,27 @@ function StatsPage({ user }: StatsPageProps) {
     };
 
     const loadPlayerStats = async () => {
+        const { startDate, endDate } = getDateRange();
+        
         // Get all matches where round = 'final' and is_completed = true
-        const { data: finalMatches } = await supabase
+        let matchesQuery = supabase
             .from('matches')
             .select(`
         *,
         team1:teams!matches_team1_id_fkey(*),
-        team2:teams!matches_team2_id_fkey(*)
+        team2:teams!matches_team2_id_fkey(*),
+        tournaments!inner(created_at)
       `)
             .eq('round', 'final')
             .eq('is_completed', true);
+        
+        if (startDate) {
+            matchesQuery = matchesQuery
+                .gte('tournaments.created_at', startDate.toISOString())
+                .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        const { data: finalMatches } = await matchesQuery;
 
         if (!finalMatches || finalMatches.length === 0) {
             setPlayerStats([]);
@@ -242,16 +280,27 @@ function StatsPage({ user }: StatsPageProps) {
     };
 
     const loadDuoStats = async () => {
+        const { startDate, endDate } = getDateRange();
+        
         // Get all final matches
-        const { data: finalMatches } = await supabase
+        let matchesQuery = supabase
             .from('matches')
             .select(`
         *,
         team1:teams!matches_team1_id_fkey(*),
-        team2:teams!matches_team2_id_fkey(*)
+        team2:teams!matches_team2_id_fkey(*),
+        tournaments!inner(created_at)
       `)
             .eq('round', 'final')
             .eq('is_completed', true);
+        
+        if (startDate) {
+            matchesQuery = matchesQuery
+                .gte('tournaments.created_at', startDate.toISOString())
+                .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        const { data: finalMatches } = await matchesQuery;
 
         if (!finalMatches || finalMatches.length === 0) {
             setDuoStats([]);
@@ -339,10 +388,20 @@ function StatsPage({ user }: StatsPageProps) {
     };
 
     const loadTeamNameStats = async () => {
-        // Get all teams across all tournaments
-        const { data: allTeams } = await supabase
+        const { startDate, endDate } = getDateRange();
+        
+        // Get all teams across all tournaments with date filtering
+        let teamsQuery = supabase
             .from('teams')
-            .select('*');
+            .select('*, tournaments!inner(created_at)');
+        
+        if (startDate) {
+            teamsQuery = teamsQuery
+                .gte('tournaments.created_at', startDate.toISOString())
+                .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        const { data: allTeams } = await teamsQuery;
 
         if (!allTeams) return;
 
@@ -373,14 +432,24 @@ function StatsPage({ user }: StatsPageProps) {
         }
 
         // Check finals appearances
-        const { data: finalMatches } = await supabase
+        let finalMatchesQuery = supabase
             .from('matches')
             .select(`
         *,
         team1:teams!matches_team1_id_fkey(*),
-        team2:teams!matches_team2_id_fkey(*)
+        team2:teams!matches_team2_id_fkey(*),
+        tournaments!inner(created_at)
       `)
-            .eq('round', 'final');
+            .eq('round', 'final')
+            .eq('is_completed', true);
+        
+        if (startDate) {
+            finalMatchesQuery = finalMatchesQuery
+                .gte('tournaments.created_at', startDate.toISOString())
+                .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        const { data: finalMatches } = await finalMatchesQuery;
 
         if (finalMatches) {
             for (const match of finalMatches) {
@@ -441,6 +510,61 @@ function StatsPage({ user }: StatsPageProps) {
                             <h1 className="text-4xl font-bold text-gray-800">Tournament Statistics</h1>
                         </div>
                         <p className="text-gray-600">Performance analytics across all tournaments</p>
+                    </div>
+                    
+                    {/* Date Filter */}
+                    <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
+                        <Filter className="w-4 h-4 text-gray-600" />
+                        <button
+                            onClick={() => setDateFilter('all')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                                dateFilter === 'all'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                            All Time
+                        </button>
+                        <button
+                            onClick={() => setDateFilter('thisYear')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                                dateFilter === 'thisYear'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                            This Year
+                        </button>
+                        <button
+                            onClick={() => setDateFilter('lastYear')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                                dateFilter === 'lastYear'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                            Last Year
+                        </button>
+                        <button
+                            onClick={() => setDateFilter('thisMonth')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                                dateFilter === 'thisMonth'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                            This Month
+                        </button>
+                        <button
+                            onClick={() => setDateFilter('lastMonth')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                                dateFilter === 'lastMonth'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                            Last Month
+                        </button>
                     </div>
                 </header>
 
