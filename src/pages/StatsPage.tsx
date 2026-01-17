@@ -126,21 +126,12 @@ function StatsPage({ user }: StatsPageProps) {
     };
 
     useEffect(() => {
-        // Reset cache flags when date filter changes to ensure fresh data
-        setPlayerStatsLoaded(false);
-        setDuoStatsLoaded(false);
-        setTeamStatsLoaded(false);
-        
-        // Load only the active tab data
-        loadTabData(activeTab);
+        // Force reload when date filter changes
+        loadTabDataForced(activeTab);
     }, [activeTab, dateFilter]);
 
-    const loadTabData = async (tab: 'players' | 'duos' | 'teams') => {
-        // Check if already loaded
-        if (tab === 'players' && playerStatsLoaded) return;
-        if (tab === 'duos' && duoStatsLoaded) return;
-        if (tab === 'teams' && teamStatsLoaded) return;
-
+    const loadTabDataForced = async (tab: 'players' | 'duos' | 'teams') => {
+        // Force load regardless of cache
         setLoadingTab(tab);
 
         try {
@@ -157,6 +148,15 @@ function StatsPage({ user }: StatsPageProps) {
         } finally {
             setLoadingTab(null);
         }
+    };
+
+    const loadTabData = async (tab: 'players' | 'duos' | 'teams') => {
+        // Check if already loaded
+        if (tab === 'players' && playerStatsLoaded) return;
+        if (tab === 'duos' && duoStatsLoaded) return;
+        if (tab === 'teams' && teamStatsLoaded) return;
+
+        await loadTabDataForced(tab);
     };
 
     const loadPlayerStats = async () => {
