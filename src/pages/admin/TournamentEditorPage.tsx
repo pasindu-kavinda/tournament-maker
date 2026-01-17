@@ -10,14 +10,19 @@ interface Tournament {
     status: 'pending' | 'in_progress' | 'completed';
     date: string;
     user_id: string;
+    creator_name?: string;
 }
 
 interface Team {
     id: string;
     name: string;
-    player1: string;
-    player2: string | null;
+    members: string[]; // Array of user IDs
     tournament_id: string;
+}
+
+interface UserProfile {
+    id: string;
+    full_name: string;
 }
 
 interface Match {
@@ -48,6 +53,7 @@ export default function TournamentEditorPage() {
     const [tournament, setTournament] = useState<Tournament | null>(null);
     const [teams, setTeams] = useState<Team[]>([]);
     const [matches, setMatches] = useState<Match[]>([]);
+    const [teamMembers, setTeamMembers] = useState<{ [key: string]: UserProfile[] }>({});
 
     // Edit states
     const [editedName, setEditedName] = useState('');
@@ -74,12 +80,24 @@ export default function TournamentEditorPage() {
 
             if (tournamentError) throw tournamentError;
 
-            setTournament(tournamentData);
-            setEditedName(tournamentData.name);
-            setEditedVenue(tournamentData.venue);
-            setEditedStatus(tournamentData.status);
+            // Load creator name
+            const { data: creatorData } = await supabase
+                .from('users')
+                .select('full_name')
+                .eq('id', tournamentData.created_by)
+                .single();
+
+            const enrichedTournament = {
+                ...tournamentData,
+                creator_name: creatorData?.full_name || 'Unknown'
+            };
+
+            setTournament(enrichedTournament);
+            setEditedName(enrichedTournament.name);
+            setEditedVenue(enrichedTournament.venue);
+            setEditedStatus(enrichedTournament.status);
             // Use created_at if date is not set, format it properly for date input
-            const dateValue = tournamentData.date || tournamentData.created_at.split('T')[0];
+            const dateValue = enrichedTournament.date || enrichedTournament.created_at.split('T')[0];
             setEditedDate(dateValue);
 
             // Load teams
@@ -91,6 +109,34 @@ export default function TournamentEditorPage() {
 
             if (teamsError) throw teamsError;
             setTeams(teamsData || []);
+
+            // Load team members
+            if (teamsData && teamsData.length > 0) {
+                const allMemberIds = new Set<string>();
+                teamsData.forEach(team => {
+                    team.members.forEach((memberId: string) => allMemberIds.add(memberId));
+                });
+
+                if (allMemberIds.size > 0) {
+                    const { data: usersData } = await supabase
+                        .from('users')
+                        .select('id, full_name')
+                        .in('id', Array.from(allMemberIds));
+
+                    if (usersData) {
+                        const userMap = new Map(usersData.map(u => [u.id, u]));
+                        const membersMap: { [key: string]: UserProfile[] } = {};
+                        
+                        teamsData.forEach(team => {
+                            membersMap[team.id] = team.members
+                                .map((memberId: string) => userMap.get(memberId))
+                                .filter((user: UserProfile | undefined): user is UserProfile => user !== undefined);
+                        });
+
+                        setTeamMembers(membersMap);
+                    }
+                }
+            }
 
             // Load matches with team details
             const { data: matchesData, error: matchesError } = await supabase
@@ -146,27 +192,6 @@ export default function TournamentEditorPage() {
             alert('Failed to save tournament. Please try again.');
         } finally {
             setSaving(false);
-        }
-    };
-
-    const saveTeam = async (team: Team) => {
-        try {
-            const { error } = await supabase
-                .from('teams')
-                .update({
-                    name: team.name,
-                    player1: team.player1,
-                    player2: team.player2,
-                })
-                .eq('id', team.id);
-
-            if (error) throw error;
-
-            setTeams(prev => prev.map(t => t.id === team.id ? team : t));
-            alert('Team updated successfully!');
-        } catch (error) {
-            console.error('Error saving team:', error);
-            alert('Failed to save team. Please try again.');
         }
     };
 
@@ -310,6 +335,7 @@ export default function TournamentEditorPage() {
             {/* Tab Content */}
             {activeTab === 'overview' && (
                 <OverviewTab
+                    tournament={tournament}
                     name={editedName}
                     venue={editedVenue}
                     status={editedStatus}
@@ -324,7 +350,7 @@ export default function TournamentEditorPage() {
             )}
 
             {activeTab === 'teams' && (
-                <TeamsTab teams={teams} onSave={saveTeam} />
+                <TeamsTab teams={teams} teamMembers={teamMembers} onReload={loadTournamentData} />
             )}
 
             {activeTab === 'matches' && (
@@ -332,7 +358,7 @@ export default function TournamentEditorPage() {
             )}
 
             {activeTab === 'final' && (
-                <FinalMatchTab tournament={tournament} teams={teams} onReload={loadTournamentData} />
+                <FinalMatchTab tournament={tournament} teams={teams} teamMembers={teamMembers} onReload={loadTournamentData} />
             )}
         </div>
     );
@@ -340,6 +366,7 @@ export default function TournamentEditorPage() {
 
 // Overview Tab Component
 interface OverviewTabProps {
+    tournament: Tournament;
     name: string;
     venue: string;
     status: 'pending' | 'in_progress' | 'completed';
@@ -352,13 +379,19 @@ interface OverviewTabProps {
     saving: boolean;
 }
 
-function OverviewTab({ name, venue, status, date, onNameChange, onVenueChange, onStatusChange, onDateChange, onSave, saving }: OverviewTabProps) {
+function OverviewTab({ tournament, name, venue, status, date, onNameChange, onVenueChange, onStatusChange, onDateChange, onSave, saving }: OverviewTabProps) {
     return (
         <div className="bg-white rounded-lg shadow p-6 space-y-6">
             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <Trophy className="w-6 h-6 text-indigo-600" />
                 Tournament Details
             </h2>
+
+            {/* Creator Info - Read-Only */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Created by</p>
+                <p className="text-lg font-semibold text-gray-800">{tournament.creator_name || 'Unknown'}</p>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -433,28 +466,44 @@ function OverviewTab({ name, venue, status, date, onNameChange, onVenueChange, o
 // Teams Tab Component
 interface TeamsTabProps {
     teams: Team[];
-    onSave: (team: Team) => void;
+    teamMembers: { [key: string]: UserProfile[] };
+    onReload: () => void;
 }
 
-function TeamsTab({ teams, onSave }: TeamsTabProps) {
+function TeamsTab({ teams, teamMembers, onReload }: TeamsTabProps) {
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [editedTeam, setEditedTeam] = useState<Team | null>(null);
+    const [editedName, setEditedName] = useState('');
+    const [saving, setSaving] = useState(false);
 
     const startEditing = (team: Team) => {
         setEditingId(team.id);
-        setEditedTeam({ ...team });
+        setEditedName(team.name);
     };
 
     const cancelEditing = () => {
         setEditingId(null);
-        setEditedTeam(null);
+        setEditedName('');
     };
 
-    const saveTeam = () => {
-        if (editedTeam) {
-            onSave(editedTeam);
+    const saveTeam = async (teamId: string) => {
+        try {
+            setSaving(true);
+            const { error } = await supabase
+                .from('teams')
+                .update({ name: editedName })
+                .eq('id', teamId);
+
+            if (error) throw error;
+
+            await onReload();
             setEditingId(null);
-            setEditedTeam(null);
+            setEditedName('');
+            alert('Team updated successfully!');
+        } catch (error) {
+            console.error('Error updating team:', error);
+            alert('Failed to update team. Please try again.');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -468,64 +517,71 @@ function TeamsTab({ teams, onSave }: TeamsTabProps) {
             <div className="space-y-4">
                 {teams.map((team) => (
                     <div key={team.id} className="border border-gray-200 rounded-lg p-4">
-                        {editingId === team.id && editedTeam ? (
+                        {editingId === team.id ? (
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Team Name</label>
                                     <input
                                         type="text"
-                                        value={editedTeam.name}
-                                        onChange={(e) => setEditedTeam({ ...editedTeam, name: e.target.value })}
+                                        value={editedName}
+                                        onChange={(e) => setEditedName(e.target.value)}
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                                         placeholder="Enter team name"
                                     />
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Player 1</label>
-                                        <input
-                                            type="text"
-                                            value={editedTeam.player1}
-                                            onChange={(e) => setEditedTeam({ ...editedTeam, player1: e.target.value })}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                            placeholder="Enter player name"
-                                        />
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Team Members</label>
+                                    <div className="bg-gray-50 p-3 rounded-lg">
+                                        {teamMembers[team.id] && teamMembers[team.id].length > 0 ? (
+                                            <ul className="space-y-1">
+                                                {teamMembers[team.id].map(member => (
+                                                    <li key={member.id} className="text-gray-700">
+                                                        • {member.full_name}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-gray-500 text-sm">No members</p>
+                                        )}
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Player 2 (Optional)</label>
-                                        <input
-                                            type="text"
-                                            value={editedTeam.player2 || ''}
-                                            onChange={(e) => setEditedTeam({ ...editedTeam, player2: e.target.value || null })}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                                            placeholder="Enter player name (optional)"
-                                        />
-                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Note: Team members cannot be edited in admin panel. They must be managed by the tournament creator.
+                                    </p>
                                 </div>
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={saveTeam}
-                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                                        onClick={() => saveTeam(team.id)}
+                                        disabled={saving}
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                                     >
                                         <Save className="w-4 h-4 inline mr-1" />
-                                        Save
+                                        {saving ? 'Saving...' : 'Save'}
                                     </button>
                                     <button
                                         onClick={cancelEditing}
-                                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                                        disabled={saving}
+                                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50"
                                     >
                                         Cancel
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="font-bold text-lg text-gray-800">{team.name}</h3>
-                                    <p className="text-sm text-gray-600">
-                                        {team.player1}
-                                        {team.player2 && ` & ${team.player2}`}
-                                    </p>
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-lg text-gray-800 mb-2">{team.name}</h3>
+                                    <div className="text-sm text-gray-600">
+                                        <p className="font-medium mb-1">Members:</p>
+                                        {teamMembers[team.id] && teamMembers[team.id].length > 0 ? (
+                                            <ul className="space-y-1 pl-4">
+                                                {teamMembers[team.id].map(member => (
+                                                    <li key={member.id}>• {member.full_name}</li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-gray-400 pl-4">No members</p>
+                                        )}
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => startEditing(team)}
@@ -724,10 +780,11 @@ function MatchesTab({ matches, onSave, onReorder, saving }: MatchesTabProps) {
 interface FinalMatchTabProps {
     tournament: Tournament;
     teams: Team[];
+    teamMembers: { [key: string]: UserProfile[] };
     onReload: () => void;
 }
 
-function FinalMatchTab({ tournament, teams, onReload }: FinalMatchTabProps) {
+function FinalMatchTab({ tournament, teams, teamMembers, onReload }: FinalMatchTabProps) {
     const [selectedTeam1, setSelectedTeam1] = useState('');
     const [selectedTeam2, setSelectedTeam2] = useState('');
     const [score1, setScore1] = useState(0);
@@ -824,11 +881,15 @@ function FinalMatchTab({ tournament, teams, onReload }: FinalMatchTabProps) {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                     >
                         <option value="">Select Team 1</option>
-                        {teams.map((team) => (
-                            <option key={team.id} value={team.id}>
-                                {team.name} ({team.player1}{team.player2 ? ` & ${team.player2}` : ''})
-                            </option>
-                        ))}
+                        {teams.map((team) => {
+                            const members = teamMembers[team.id] || [];
+                            const memberNames = members.map(m => m.full_name).join(' & ');
+                            return (
+                                <option key={team.id} value={team.id}>
+                                    {team.name} ({memberNames || 'No members'})
+                                </option>
+                            );
+                        })}
                     </select>
                     <div className="mt-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Team 1 Score</label>
@@ -850,11 +911,15 @@ function FinalMatchTab({ tournament, teams, onReload }: FinalMatchTabProps) {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                     >
                         <option value="">Select Team 2</option>
-                        {teams.map((team) => (
-                            <option key={team.id} value={team.id}>
-                                {team.name} ({team.player1}{team.player2 ? ` & ${team.player2}` : ''})
-                            </option>
-                        ))}
+                        {teams.map((team) => {
+                            const members = teamMembers[team.id] || [];
+                            const memberNames = members.map(m => m.full_name).join(' & ');
+                            return (
+                                <option key={team.id} value={team.id}>
+                                    {team.name} ({memberNames || 'No members'})
+                                </option>
+                            );
+                        })}
                     </select>
                     <div className="mt-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Team 2 Score</label>
