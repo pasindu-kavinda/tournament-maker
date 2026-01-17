@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trophy, Users, Target, MapPin, FileText, User as UserIcon, Trash2, TrendingUp } from 'lucide-react';
+import { Trophy, Users, Target, MapPin, FileText, User as UserIcon, Trash2, TrendingUp, Network } from 'lucide-react';
 import TeamInput from '../components/TeamInput';
 import Bracket from '../components/Bracket';
+import BracketTree from '../components/BracketTree';
 import TeamStats from '../components/TeamStats';
 import { Team, Match, UserProfile } from '../types';
 import { User } from '@supabase/supabase-js';
@@ -34,6 +35,7 @@ function TournamentPage({ user }: TournamentPageProps) {
   const [showSummary, setShowSummary] = useState(false);
   const [teamMembers, setTeamMembers] = useState<{ [key: string]: UserProfile[] }>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showBracketTree, setShowBracketTree] = useState(false);
 
   useEffect(() => {
     if (tournamentId) {
@@ -453,13 +455,20 @@ function TournamentPage({ user }: TournamentPageProps) {
         </header>
 
         {isCompleted && (
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center gap-4 mb-8">
             <button
               onClick={() => setShowSummary(!showSummary)}
               className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             >
               <FileText className="w-5 h-5" />
               {showSummary ? 'Show Matches' : 'Show Tournament Summary'}
+            </button>
+            <button
+              onClick={() => setShowBracketTree(!showBracketTree)}
+              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              <Network className="w-5 h-5" />
+              {showBracketTree ? 'Hide Bracket Tree' : 'Show Bracket Tree'}
             </button>
           </div>
         )}
@@ -471,6 +480,12 @@ function TournamentPage({ user }: TournamentPageProps) {
             matches={matches} 
             teams={teams}
             tournament={tournament}
+          />
+        ) : isCompleted && showBracketTree ? (
+          <BracketTree 
+            matches={matches}
+            finalMatch={finalMatch}
+            teams={teams}
           />
         ) : (
           <div className="grid lg:grid-cols-[350px,1fr] gap-8">

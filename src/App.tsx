@@ -6,6 +6,7 @@ import TournamentPage from './pages/TournamentPage';
 import StatsPage from './pages/StatsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import TournamentPublicView from './pages/TournamentPublicView';
+import PlayerProfilePage from './pages/PlayerProfilePage';
 import Auth from './components/Auth';
 import { User } from '@supabase/supabase-js';
 
@@ -50,6 +51,8 @@ function App() {
             <Route path="/" element={<HomePage user={user} />} />
             <Route path="/stats" element={<StatsPage user={user} />} />
             <Route path="/tournament/:id" element={<TournamentPage user={user} />} />
+            <Route path="/profile" element={<PlayerProfilePage user={user} />} />
+            <Route path="/profile/:userId" element={<PlayerProfilePage user={user} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </>
         )}

@@ -105,6 +105,12 @@ function HomePage({ user }: HomePageProps) {
                   <span>{displayName}</span>
                 </div>
                 <button
+                  onClick={() => navigate('/profile')}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  My Profile
+                </button>
+                <button
                   onClick={() => navigate('/reset-password')}
                   className="text-gray-600 hover:text-gray-800"
                 >
@@ -147,6 +153,16 @@ function HomePage({ user }: HomePageProps) {
                   >
                     <TrendingUp className="w-4 h-4" />
                     <span>View Stats</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/profile');
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded transition"
+                  >
+                    <UserIcon className="w-4 h-4" />
+                    <span>My Profile</span>
                   </button>
                   <button
                     onClick={() => {
