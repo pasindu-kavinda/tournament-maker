@@ -321,6 +321,7 @@ function TournamentPage({ user }: TournamentPageProps) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    navigate('/');
   };
 
   if (!tournament) return null;

@@ -77,6 +77,7 @@ function HomePage({ user }: HomePageProps) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    navigate('/');
   };
 
   const displayName = user.user_metadata?.full_name || 'User';

@@ -33,11 +33,21 @@ export default function Auth() {
 
     if (error) {
       showToast('Error', error.message, 'error');
+      setLoading(false);
     } else if (data.user) {
-      showToast('Success', 'Account created successfully! You can now sign in.', 'success');
-      setIsSignUp(false);
+      if (data.user.identities && data.user.identities.length === 0) {
+        showToast('Info', 'This email is already registered. Please sign in instead.', 'error');
+        setIsSignUp(false);
+      } else if (data.session) {
+        showToast('Success', 'Account created successfully! Welcome!', 'success');
+      } else {
+        showToast('Success', 'Account created! Please check your email to confirm your account.', 'success');
+        setIsSignUp(false);
+      }
+      setLoading(false);
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
