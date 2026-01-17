@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, MapPin, User as UserIcon, TrendingUp } from 'lucide-react';
+import { Trophy, MapPin, User as UserIcon, TrendingUp, Lock, ChevronDown, ChevronUp } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport, ToastClose } from '../components/Toast';
@@ -30,6 +30,10 @@ function HomePage({ user }: HomePageProps) {
   const [venue, setVenue] = useState(VENUES[0]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [toast, setToast] = useState<{ title: string; description: string; variant: 'success' | 'error' } | null>(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
     loadTournaments();
@@ -75,6 +79,40 @@ function HomePage({ user }: HomePageProps) {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/');
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      showToast('Error', 'Please fill in all fields', 'error');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      showToast('Error', 'Password must be at least 6 characters long', 'error');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      showToast('Error', 'Passwords do not match', 'error');
+      return;
+    }
+
+    setChangingPassword(true);
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) {
+      showToast('Error', error.message, 'error');
+    } else {
+      showToast('Success', 'Password changed successfully!', 'success');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowChangePassword(false);
+    }
+
+    setChangingPassword(false);
   };
 
   const displayName = user.user_metadata?.full_name || 'User';
@@ -156,6 +194,71 @@ function HomePage({ user }: HomePageProps) {
                   Create Tournament
                 </button>
               </div>
+            </div>
+
+            {/* Change Password Section */}
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+              <button
+                onClick={() => setShowChangePassword(!showChangePassword)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-indigo-600" />
+                  <h2 className="text-xl font-semibold">Change Password</h2>
+                </div>
+                {showChangePassword ? (
+                  <ChevronUp className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-500" />
+                )}
+              </button>
+
+              {showChangePassword && (
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      minLength={6}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirm Password
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      minLength={6}
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleChangePassword}
+                    disabled={changingPassword || !newPassword || !confirmPassword}
+                    className="w-full px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {changingPassword ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                        Updating...
+                      </div>
+                    ) : (
+                      'Update Password'
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-xl shadow-lg p-6">

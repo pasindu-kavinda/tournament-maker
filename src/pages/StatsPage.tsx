@@ -37,25 +37,45 @@ interface TeamNameStats {
 
 function StatsPage({ user }: StatsPageProps) {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'players' | 'duos' | 'teams'>('players');
+    const [loadingTab, setLoadingTab] = useState<string | null>(null);
 
     const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
     const [duoStats, setDuoStats] = useState<DuoStats[]>([]);
     const [teamNameStats, setTeamNameStats] = useState<TeamNameStats[]>([]);
 
-    useEffect(() => {
-        loadAllStats();
-    }, []);
+    // Cache flags to avoid reloading
+    const [playerStatsLoaded, setPlayerStatsLoaded] = useState(false);
+    const [duoStatsLoaded, setDuoStatsLoaded] = useState(false);
+    const [teamStatsLoaded, setTeamStatsLoaded] = useState(false);
 
-    const loadAllStats = async () => {
-        setLoading(true);
-        await Promise.all([
-            loadPlayerStats(),
-            loadDuoStats(),
-            loadTeamNameStats()
-        ]);
-        setLoading(false);
+    useEffect(() => {
+        // Load only the active tab data
+        loadTabData(activeTab);
+    }, [activeTab]);
+
+    const loadTabData = async (tab: 'players' | 'duos' | 'teams') => {
+        // Check if already loaded
+        if (tab === 'players' && playerStatsLoaded) return;
+        if (tab === 'duos' && duoStatsLoaded) return;
+        if (tab === 'teams' && teamStatsLoaded) return;
+
+        setLoadingTab(tab);
+        
+        try {
+            if (tab === 'players') {
+                await loadPlayerStats();
+                setPlayerStatsLoaded(true);
+            } else if (tab === 'duos') {
+                await loadDuoStats();
+                setDuoStatsLoaded(true);
+            } else if (tab === 'teams') {
+                await loadTeamNameStats();
+                setTeamStatsLoaded(true);
+            }
+        } finally {
+            setLoadingTab(null);
+        }
     };
 
     const loadPlayerStats = async () => {
@@ -70,7 +90,31 @@ function StatsPage({ user }: StatsPageProps) {
             .eq('round', 'final')
             .eq('is_completed', true);
 
-        if (!finalMatches) return;
+        if (!finalMatches || finalMatches.length === 0) {
+            setPlayerStats([]);
+            return;
+        }
+
+        // Collect all unique player IDs
+        const allPlayerIds = new Set<string>();
+        for (const match of finalMatches) {
+            const team1Members = match.team1?.members || [];
+            const team2Members = match.team2?.members || [];
+            team1Members.forEach((id: string) => allPlayerIds.add(id));
+            team2Members.forEach((id: string) => allPlayerIds.add(id));
+        }
+
+        // Fetch all user data in ONE query
+        const { data: allUsers } = await supabase
+            .from('users')
+            .select('id, full_name')
+            .in('id', Array.from(allPlayerIds));
+
+        // Create a lookup map for user names
+        const userMap = new Map<string, string>();
+        allUsers?.forEach(user => {
+            userMap.set(user.id, user.full_name);
+        });
 
         // Track stats for each player
         const statsMap = new Map<string, {
@@ -88,14 +132,8 @@ function StatsPage({ user }: StatsPageProps) {
             // Process team1 members
             for (const memberId of team1Members) {
                 if (!statsMap.has(memberId)) {
-                    const { data: userData } = await supabase
-                        .from('users')
-                        .select('full_name')
-                        .eq('id', memberId)
-                        .single();
-
                     statsMap.set(memberId, {
-                        name: userData?.full_name || 'Unknown',
+                        name: userMap.get(memberId) || 'Unknown',
                         finalsAppearances: 0,
                         finalsWins: 0,
                         tournamentsSet: new Set()
@@ -113,14 +151,8 @@ function StatsPage({ user }: StatsPageProps) {
             // Process team2 members
             for (const memberId of team2Members) {
                 if (!statsMap.has(memberId)) {
-                    const { data: userData } = await supabase
-                        .from('users')
-                        .select('full_name')
-                        .eq('id', memberId)
-                        .single();
-
                     statsMap.set(memberId, {
-                        name: userData?.full_name || 'Unknown',
+                        name: userMap.get(memberId) || 'Unknown',
                         finalsAppearances: 0,
                         finalsWins: 0,
                         tournamentsSet: new Set()
@@ -167,7 +199,32 @@ function StatsPage({ user }: StatsPageProps) {
             .eq('round', 'final')
             .eq('is_completed', true);
 
-        if (!finalMatches) return;
+        if (!finalMatches || finalMatches.length === 0) {
+            setDuoStats([]);
+            return;
+        }
+
+        // Collect all unique player IDs
+        const allPlayerIds = new Set<string>();
+        for (const match of finalMatches) {
+            const teams = [match.team1, match.team2];
+            for (const team of teams) {
+                const members = team?.members || [];
+                members.forEach((id: string) => allPlayerIds.add(id));
+            }
+        }
+
+        // Fetch all user data in ONE query
+        const { data: allUsers } = await supabase
+            .from('users')
+            .select('id, full_name')
+            .in('id', Array.from(allPlayerIds));
+
+        // Create a lookup map for user names
+        const userMap = new Map<string, string>();
+        allUsers?.forEach(user => {
+            userMap.set(user.id, user.full_name);
+        });
 
         // Track stats for each duo (pair of players)
         const duoMap = new Map<string, {
@@ -193,23 +250,11 @@ function StatsPage({ user }: StatsPageProps) {
                     const duoKey = `${p1}_${p2}`;
 
                     if (!duoMap.has(duoKey)) {
-                        const { data: user1 } = await supabase
-                            .from('users')
-                            .select('full_name')
-                            .eq('id', p1)
-                            .single();
-
-                        const { data: user2 } = await supabase
-                            .from('users')
-                            .select('full_name')
-                            .eq('id', p2)
-                            .single();
-
                         duoMap.set(duoKey, {
                             player1Id: p1,
                             player2Id: p2,
-                            player1Name: user1?.full_name || 'Unknown',
-                            player2Name: user2?.full_name || 'Unknown',
+                            player1Name: userMap.get(p1) || 'Unknown',
+                            player2Name: userMap.get(p2) || 'Unknown',
                             finalsAppearances: 0,
                             finalsWins: 0
                         });
@@ -317,14 +362,6 @@ function StatsPage({ user }: StatsPageProps) {
 
     const displayName = user.user_metadata?.full_name || 'User';
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent" />
-            </div>
-        );
-    }
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100">
             <div className="container mx-auto px-4 py-8">
@@ -396,7 +433,12 @@ function StatsPage({ user }: StatsPageProps) {
                                 Player Performance in Finals
                             </h2>
 
-                            {playerStats.length === 0 ? (
+                            {loadingTab === 'players' ? (
+                                <div className="text-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mx-auto mb-4" />
+                                    <p className="text-gray-600">Loading player statistics...</p>
+                                </div>
+                            ) : playerStats.length === 0 ? (
                                 <div className="text-center py-12 text-gray-500">
                                     <Trophy className="w-16 h-16 mx-auto mb-4 opacity-50" />
                                     <p>No finals data available yet</p>
@@ -467,7 +509,12 @@ function StatsPage({ user }: StatsPageProps) {
                                 Top Performing Duos in Finals
                             </h2>
 
-                            {duoStats.length === 0 ? (
+                            {loadingTab === 'duos' ? (
+                                <div className="text-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mx-auto mb-4" />
+                                    <p className="text-gray-600">Loading duo statistics...</p>
+                                </div>
+                            ) : duoStats.length === 0 ? (
                                 <div className="text-center py-12 text-gray-500">
                                     <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
                                     <p>No duo finals data available yet</p>
@@ -538,7 +585,12 @@ function StatsPage({ user }: StatsPageProps) {
                                 Team Name Performance
                             </h2>
 
-                            {teamNameStats.length === 0 ? (
+                            {loadingTab === 'teams' ? (
+                                <div className="text-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mx-auto mb-4" />
+                                    <p className="text-gray-600">Loading team statistics...</p>
+                                </div>
+                            ) : teamNameStats.length === 0 ? (
                                 <div className="text-center py-12 text-gray-500">
                                     <Trophy className="w-16 h-16 mx-auto mb-4 opacity-50" />
                                     <p>No team data available yet</p>
