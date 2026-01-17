@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, MapPin, User as UserIcon, TrendingUp, Lock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trophy, MapPin, User as UserIcon, TrendingUp, Menu, X } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport, ToastClose } from '../components/Toast';
@@ -30,10 +30,7 @@ function HomePage({ user }: HomePageProps) {
   const [venue, setVenue] = useState(VENUES[0]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [toast, setToast] = useState<{ title: string; description: string; variant: 'success' | 'error' } | null>(null);
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [changingPassword, setChangingPassword] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     loadTournaments();
@@ -81,40 +78,6 @@ function HomePage({ user }: HomePageProps) {
     navigate('/');
   };
 
-  const handleChangePassword = async () => {
-    if (!newPassword || !confirmPassword) {
-      showToast('Error', 'Please fill in all fields', 'error');
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      showToast('Error', 'Password must be at least 6 characters long', 'error');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      showToast('Error', 'Passwords do not match', 'error');
-      return;
-    }
-
-    setChangingPassword(true);
-
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword
-    });
-
-    if (error) {
-      showToast('Error', error.message, 'error');
-    } else {
-      showToast('Success', 'Password changed successfully!', 'success');
-      setNewPassword('');
-      setConfirmPassword('');
-      setShowChangePassword(false);
-    }
-
-    setChangingPassword(false);
-  };
-
   const displayName = user.user_metadata?.full_name || 'User';
 
   return (
@@ -122,7 +85,8 @@ function HomePage({ user }: HomePageProps) {
       <ToastProvider>
         <div className="container mx-auto px-4 py-8">
           <header className="text-center mb-12">
-            <div className="flex items-center justify-between mb-4">
+            {/* Desktop Header */}
+            <div className="hidden md:flex items-center justify-between mb-4">
               <div className="flex-1">
                 <button
                   onClick={() => navigate('/stats')}
@@ -141,6 +105,12 @@ function HomePage({ user }: HomePageProps) {
                   <span>{displayName}</span>
                 </div>
                 <button
+                  onClick={() => navigate('/reset-password')}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  Reset Password
+                </button>
+                <button
                   onClick={handleSignOut}
                   className="text-gray-600 hover:text-gray-800"
                 >
@@ -148,7 +118,59 @@ function HomePage({ user }: HomePageProps) {
                 </button>
               </div>
             </div>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">Tournament Brackets Maker</h1>
+
+            {/* Mobile Header */}
+            <div className="md:hidden">
+              <div className="flex items-center justify-between mb-4">
+                <Trophy className="w-10 h-10 text-indigo-600" />
+                <button
+                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                  className="p-2 text-gray-600 hover:text-gray-800"
+                >
+                  {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </button>
+              </div>
+
+              {/* Mobile Menu */}
+              {showMobileMenu && (
+                <div className="bg-white rounded-lg shadow-lg p-4 mb-4 space-y-3">
+                  <div className="flex items-center gap-2 px-3 py-2 text-gray-700 border-b">
+                    <UserIcon className="w-4 h-4" />
+                    <span className="font-medium">{displayName}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigate('/stats');
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-indigo-600 hover:bg-indigo-50 rounded transition"
+                  >
+                    <TrendingUp className="w-4 h-4" />
+                    <span>View Stats</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/reset-password');
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded transition"
+                  >
+                    <span>Reset Password</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded transition"
+                  >
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Tournament Brackets Maker</h1>
             <p className="text-gray-600">Create and manage tournaments!</p>
           </header>
 
@@ -194,71 +216,6 @@ function HomePage({ user }: HomePageProps) {
                   Create Tournament
                 </button>
               </div>
-            </div>
-
-            {/* Change Password Section */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-              <button
-                onClick={() => setShowChangePassword(!showChangePassword)}
-                className="w-full flex items-center justify-between text-left"
-              >
-                <div className="flex items-center gap-2">
-                  <Lock className="w-5 h-5 text-indigo-600" />
-                  <h2 className="text-xl font-semibold">Change Password</h2>
-                </div>
-                {showChangePassword ? (
-                  <ChevronUp className="w-5 h-5 text-gray-500" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-500" />
-                )}
-              </button>
-
-              {showChangePassword && (
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      New Password
-                    </label>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter new password"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      minLength={6}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Confirm Password
-                    </label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                      minLength={6}
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleChangePassword}
-                    disabled={changingPassword || !newPassword || !confirmPassword}
-                    className="w-full px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {changingPassword ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                        Updating...
-                      </div>
-                    ) : (
-                      'Update Password'
-                    )}
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="bg-white rounded-xl shadow-lg p-6">
