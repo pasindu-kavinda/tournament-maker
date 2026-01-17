@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport, ToastClose } from './Toast';
+import ForgotPassword from './ForgotPassword';
 
 export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,6 +53,10 @@ export default function Auth() {
     }
     setLoading(false);
   };
+
+  if (isForgotPassword) {
+    return <ForgotPassword onBack={() => setIsForgotPassword(false)} />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100">
@@ -125,6 +131,18 @@ export default function Auth() {
                 required
               />
             </div>
+
+            {!isSignUp && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(true)}
+                  className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+            )}
 
             <button
               type="submit"
