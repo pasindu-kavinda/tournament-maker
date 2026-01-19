@@ -38,7 +38,13 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamSt
               .order('created_at', { ascending: true });
             
             if (updatedTeams) {
-              setRealtimeTeams(updatedTeams);
+              // Transform database column names to camelCase
+              const transformedTeams = updatedTeams.map(team => ({
+                ...team,
+                leadPoints: team.lead_points ?? 0,
+                matchesPlayed: team.matches_played ?? 0
+              }));
+              setRealtimeTeams(transformedTeams);
             }
           }
         )

@@ -89,7 +89,15 @@ function TournamentPage({ user }: TournamentPageProps) {
         .eq('tournament_id', tournamentId)
         .order('created_at', { ascending: true });
       
-      if (teamsData) setTeams(teamsData);
+      if (teamsData) {
+        // Transform database column names to camelCase
+        const transformedTeams = teamsData.map(team => ({
+          ...team,
+          leadPoints: team.lead_points ?? 0,
+          matchesPlayed: team.matches_played ?? 0
+        }));
+        setTeams(transformedTeams);
+      }
 
       const { data: matchesData } = await supabase
         .from('matches')
@@ -146,7 +154,13 @@ function TournamentPage({ user }: TournamentPageProps) {
       .single();
 
     if (newTeam) {
-      setTeams([...teams, newTeam]);
+      // Transform database column names to camelCase
+      const transformedTeam = {
+        ...newTeam,
+        leadPoints: newTeam.lead_points ?? 0,
+        matchesPlayed: newTeam.matches_played ?? 0
+      };
+      setTeams([...teams, transformedTeam]);
       
       // Send push notification to all tournament members
       showPushNotification(
@@ -239,7 +253,15 @@ function TournamentPage({ user }: TournamentPageProps) {
       .eq('tournament_id', tournamentId)
       .order('created_at', { ascending: true });
     
-    if (teamsData) setTeams(teamsData);
+    if (teamsData) {
+      // Transform database column names to camelCase
+      const transformedTeams = teamsData.map(team => ({
+        ...team,
+        leadPoints: team.lead_points ?? 0,
+        matchesPlayed: team.matches_played ?? 0
+      }));
+      setTeams(transformedTeams);
+    }
   };
 
   const handleSubmitScores = async (matchId: string, scores: [number, number]) => {
@@ -322,7 +344,14 @@ function TournamentPage({ user }: TournamentPageProps) {
           .eq('tournament_id', tournamentId);
         
         if (freshTeamsData) {
-          const topTeams = getTopTeams(freshTeamsData, 2);
+          // Transform database column names to camelCase
+          const transformedTeams = freshTeamsData.map(team => ({
+            ...team,
+            leadPoints: team.lead_points ?? 0,
+            matchesPlayed: team.matches_played ?? 0
+          }));
+          
+          const topTeams = getTopTeams(transformedTeams, 2);
           const newFinalMatch = generateFinalMatch(topTeams);
 
           const { data: createdFinalMatch } = await supabase
@@ -332,7 +361,8 @@ function TournamentPage({ user }: TournamentPageProps) {
               team1_id: newFinalMatch.teams[0]?.id,
               team2_id: newFinalMatch.teams[1]?.id,
               match_number: 1,
-              round: 'final'
+              round: 'final',
+              is_completed: false
             })
           .select(`
             *,
