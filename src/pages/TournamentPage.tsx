@@ -421,6 +421,75 @@ function TournamentPage({ user }: TournamentPageProps) {
     navigate('/');
   };
 
+  const handleGenerateFinalMatch = async () => {
+    if (!tournamentId || !isCreator) return;
+
+    try {
+      setIsProcessing(true);
+
+      // Fetch fresh team data with transformed columns
+      const { data: freshTeamsData } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('tournament_id', tournamentId);
+      
+      if (freshTeamsData && freshTeamsData.length >= 2) {
+        // Transform database column names to camelCase
+        const transformedTeams = freshTeamsData.map(team => ({
+          ...team,
+          leadPoints: team.lead_points ?? 0,
+          matchesPlayed: team.matches_played ?? 0
+        }));
+        
+        const topTeams = getTopTeams(transformedTeams, 2);
+        const newFinalMatch = generateFinalMatch(topTeams);
+
+        const { data: createdFinalMatch } = await supabase
+          .from('matches')
+          .insert({
+            tournament_id: tournamentId,
+            team1_id: newFinalMatch.teams[0]?.id,
+            team2_id: newFinalMatch.teams[1]?.id,
+            match_number: 1,
+            round: 'final',
+            is_completed: false
+          })
+        .select(`
+          *,
+          team1:teams!matches_team1_id_fkey(*),
+          team2:teams!matches_team2_id_fkey(*)
+        `)
+        .single();
+
+        if (createdFinalMatch) {
+          const formattedFinalMatch = {
+            ...createdFinalMatch,
+            teams: [createdFinalMatch.team1, createdFinalMatch.team2],
+            scores: [createdFinalMatch.team1_score, createdFinalMatch.team2_score],
+            isCompleted: createdFinalMatch.is_completed,
+            winner: createdFinalMatch.winner_id,
+            pointDifference: createdFinalMatch.point_difference,
+            matchNumber: createdFinalMatch.match_number,
+            round: createdFinalMatch.round
+          };
+          
+          setFinalMatch(formattedFinalMatch);
+
+          showPushNotification(
+            'Final Match Created! 🏆',
+            `${topTeams[0]?.name} vs ${topTeams[1]?.name}`,
+            tournamentId
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error generating final match:', error);
+      alert('Failed to generate final match. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (!tournament) return null;
 
   const isCompleted = tournament.status === 'completed';
@@ -652,6 +721,35 @@ function TournamentPage({ user }: TournamentPageProps) {
             </div>
 
             <div className="space-y-8">
+              {matches.length > 0 && !finalMatch && matches.every(m => m.isCompleted) && isCreator && (
+                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl shadow-lg p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Trophy className="w-8 h-8 text-amber-600" />
+                    <div>
+                      <h3 className="text-xl font-bold text-amber-900">All Matches Complete!</h3>
+                      <p className="text-amber-700 text-sm">Ready to generate the final match</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleGenerateFinalMatch}
+                    disabled={isProcessing}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trophy className="w-5 h-5" />
+                        <span>Generate Final Match</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
               <Bracket
                 matches={matches.map(match => ({
                   ...match,
