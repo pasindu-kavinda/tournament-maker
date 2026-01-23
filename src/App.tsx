@@ -14,6 +14,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import TournamentPublicView from './pages/TournamentPublicView';
 import PlayerProfilePage from './pages/PlayerProfilePage';
 import Auth from './components/Auth';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { User } from '@supabase/supabase-js';
 
 function App() {
@@ -46,6 +47,7 @@ function App() {
   return (
     <BrowserRouter>
       <AdminProvider user={user}>
+        <PWAInstallPrompt />
         <Routes>
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/tournament/:id/view" element={<TournamentPublicView />} />
