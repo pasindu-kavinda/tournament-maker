@@ -12,23 +12,28 @@
       "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
+      "purpose": "any"
+    },
     {
-      "src": "/screenshot1.png",
-      "sizes": "540x720",
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "form_factor": "narrow"
+      "purpose": "maskable"
     }
   ],
+  "screenshots": [],
   "categories": ["sports", "productivity"],
   "prefer_related_applications": false
 }
