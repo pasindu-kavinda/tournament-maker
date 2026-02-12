@@ -27,18 +27,21 @@ USING (auth.uid() = id);
 
 -- 4. Admin Access Policies
 -- Tournaments: Admins can view/edit/delete ALL
+DROP POLICY IF EXISTS "Admins can view all tournaments" ON public.tournaments;
 CREATE POLICY "Admins can view all tournaments"
 ON public.tournaments FOR SELECT
 USING (
   (SELECT is_admin FROM public.users WHERE id = auth.uid()) = true
 );
 
+DROP POLICY IF EXISTS "Admins can update all tournaments" ON public.tournaments;
 CREATE POLICY "Admins can update all tournaments"
 ON public.tournaments FOR UPDATE
 USING (
   (SELECT is_admin FROM public.users WHERE id = auth.uid()) = true
 );
 
+DROP POLICY IF EXISTS "Admins can delete all tournaments" ON public.tournaments;
 CREATE POLICY "Admins can delete all tournaments"
 ON public.tournaments FOR DELETE
 USING (
@@ -46,18 +49,21 @@ USING (
 );
 
 -- Teams: Admins can view/edit/delete ALL
+DROP POLICY IF EXISTS "Admins can view all teams" ON public.teams;
 CREATE POLICY "Admins can view all teams"
 ON public.teams FOR SELECT
 USING (
   (SELECT is_admin FROM public.users WHERE id = auth.uid()) = true
 );
 
+DROP POLICY IF EXISTS "Admins can update all teams" ON public.teams;
 CREATE POLICY "Admins can update all teams"
 ON public.teams FOR UPDATE
 USING (
   (SELECT is_admin FROM public.users WHERE id = auth.uid()) = true
 );
 
+DROP POLICY IF EXISTS "Admins can delete all teams" ON public.teams;
 CREATE POLICY "Admins can delete all teams"
 ON public.teams FOR DELETE
 USING (
@@ -65,18 +71,21 @@ USING (
 );
 
 -- Matches: Admins can view/edit/delete ALL
+DROP POLICY IF EXISTS "Admins can view all matches" ON public.matches;
 CREATE POLICY "Admins can view all matches"
 ON public.matches FOR SELECT
 USING (
   (SELECT is_admin FROM public.users WHERE id = auth.uid()) = true
 );
 
+DROP POLICY IF EXISTS "Admins can update all matches" ON public.matches;
 CREATE POLICY "Admins can update all matches"
 ON public.matches FOR UPDATE
 USING (
   (SELECT is_admin FROM public.users WHERE id = auth.uid()) = true
 );
 
+DROP POLICY IF EXISTS "Admins can delete all matches" ON public.matches;
 CREATE POLICY "Admins can delete all matches"
 ON public.matches FOR DELETE
 USING (

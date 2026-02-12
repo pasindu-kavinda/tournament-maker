@@ -47,15 +47,14 @@ export default function TournamentsPage() {
 
             if (tournamentsError) throw tournamentsError;
 
-            // Get user data - filter out null/undefined user_ids
-            const userIds = [...new Set(tournamentsData?.map(t => t.user_id).filter(id => id) || [])];
-            
+            // Get user data - use created_by field
+            const creatorIds = [...new Set(tournamentsData?.map(t => t.created_by).filter(id => id) || [])];
             let userMap = new Map<string, string>();
-            if (userIds.length > 0) {
+            if (creatorIds.length > 0) {
                 const { data: usersData } = await supabase
                     .from('users')
                     .select('id, full_name')
-                    .in('id', userIds);
+                    .in('id', creatorIds);
 
                 userMap = new Map(usersData?.map(u => [u.id, u.full_name || 'Unknown']) || []);
             }
@@ -70,7 +69,7 @@ export default function TournamentsPage() {
 
                     return {
                         ...tournament,
-                        creator_name: userMap.get(tournament.user_id),
+                        creator_name: userMap.get(tournament.created_by),
                         team_count: teamCount || 0,
                         match_count: matchCount || 0,
                     };
@@ -210,8 +209,8 @@ export default function TournamentsPage() {
                     <button
                         onClick={() => setStatusFilter('all')}
                         className={`px-4 py-2 rounded-lg font-medium transition ${statusFilter === 'all'
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         All ({tournaments.length})
@@ -219,8 +218,8 @@ export default function TournamentsPage() {
                     <button
                         onClick={() => setStatusFilter('pending')}
                         className={`px-4 py-2 rounded-lg font-medium transition ${statusFilter === 'pending'
-                                ? 'bg-yellow-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-yellow-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         Pending ({tournaments.filter(t => t.status === 'pending').length})
@@ -228,8 +227,8 @@ export default function TournamentsPage() {
                     <button
                         onClick={() => setStatusFilter('in_progress')}
                         className={`px-4 py-2 rounded-lg font-medium transition ${statusFilter === 'in_progress'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         In Progress ({tournaments.filter(t => t.status === 'in_progress').length})
@@ -237,8 +236,8 @@ export default function TournamentsPage() {
                     <button
                         onClick={() => setStatusFilter('completed')}
                         className={`px-4 py-2 rounded-lg font-medium transition ${statusFilter === 'completed'
-                                ? 'bg-green-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         Completed ({tournaments.filter(t => t.status === 'completed').length})

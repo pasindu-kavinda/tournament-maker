@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Users, Search, Save, X, Mail, Calendar } from 'lucide-react';
+import { Users, Search, Save, X, Mail, Calendar, Shield, Clock } from 'lucide-react';
 
 interface User {
     id: string;
     full_name: string | null;
+    email: string | null;
     created_at: string;
+    last_sign_in_at: string | null;
+    is_admin: boolean;
 }
 
 export default function UsersPage() {
@@ -30,6 +33,7 @@ export default function UsersPage() {
             const filtered = users.filter(
                 (user) =>
                     user.full_name?.toLowerCase().includes(query) ||
+                    user.email?.toLowerCase().includes(query) ||
                     user.id.toLowerCase().includes(query)
             );
             setFilteredUsers(filtered);
@@ -39,16 +43,23 @@ export default function UsersPage() {
     const loadUsers = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
+
+            // Query users table directly - no RPC functions
+            const { data: usersData, error } = await supabase
                 .from('users')
-                .select('id, full_name, created_at')
+                .select('*')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setUsers(data || []);
-            setFilteredUsers(data || []);
+
+            console.log('Users data:', usersData);
+
+            setUsers(usersData || []);
+            setFilteredUsers(usersData || []);
         } catch (error) {
             console.error('Error loading users:', error);
+            setUsers([]);
+            setFilteredUsers([]);
         } finally {
             setLoading(false);
         }
@@ -99,6 +110,8 @@ export default function UsersPage() {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
     };
 
@@ -131,7 +144,7 @@ export default function UsersPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                     type="text"
-                    placeholder="Search by name or ID..."
+                    placeholder="Search by name, email, or ID..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -156,10 +169,10 @@ export default function UsersPage() {
                                     User
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    User ID
+                                    Contact / ID
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Joined
+                                    Activity
                                 </th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Actions
@@ -188,21 +201,45 @@ export default function UsersPage() {
                                                 />
                                             ) : (
                                                 <div>
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        {user.full_name || (
-                                                            <span className="text-gray-400 italic">No name set</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="text-sm font-medium text-gray-900">
+                                                            {user.full_name || (
+                                                                <span className="text-gray-400 italic">No name set</span>
+                                                            )}
+                                                        </div>
+                                                        {user.is_admin && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                                                                <Shield className="w-3 h-3 mr-1" />
+                                                                Admin
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </div>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-xs text-gray-500 font-mono">{user.id}</div>
+                                            <div className="flex flex-col">
+                                                {user.email && (
+                                                    <div className="flex items-center gap-2 text-sm text-gray-900 mb-1">
+                                                        <Mail className="h-4 w-4 text-gray-400" />
+                                                        {user.email}
+                                                    </div>
+                                                )}
+                                                <div className="text-xs text-gray-500 font-mono" title="User ID">
+                                                    {user.id}
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className="h-4 w-4 text-gray-400" />
-                                                <span className="text-sm text-gray-500">{formatDate(user.created_at)}</span>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                    <Calendar className="h-3 w-3" />
+                                                    Joined: {formatDate(user.created_at).split(',')[0]}
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                    <Clock className="h-3 w-3" />
+                                                    Last seen: {user.last_sign_in_at ? formatDate(user.last_sign_in_at) : 'Never'}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -253,8 +290,8 @@ export default function UsersPage() {
                         <div className="mt-2 text-sm text-blue-700">
                             <ul className="list-disc list-inside space-y-1">
                                 <li>Click "Edit Name" to update a user's display name</li>
-                                <li>Use the search bar to filter users by name or ID</li>
-                                <li>User data is synced from Supabase authentication</li>
+                                <li>Use the search bar to filter users by name, email, or ID</li>
+                                <li>User data includes email and last login time (visible to admins only)</li>
                             </ul>
                         </div>
                     </div>
