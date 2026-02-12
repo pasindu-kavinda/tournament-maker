@@ -115,6 +115,44 @@ function StatsLandingPage({ user }: StatsLandingPageProps) {
                             <ArrowLeft className="w-4 h-4 rotate-180" />
                         </div>
                     </button>
+
+                    {/* Achievements & Records Card */}
+                    <button
+                        onClick={() => navigate('/stats/achievements')}
+                        className="group bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105 text-left md:col-span-2"
+                    >
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <Award className="w-8 h-8 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800 group-hover:text-indigo-600 transition">
+                                    Achievements & Records
+                                </h2>
+                                <p className="text-sm text-gray-500">Player Milestones & Leaderboards</p>
+                            </div>
+                        </div>
+
+                        <p className="text-gray-600 mb-4">
+                            View achievement leaderboards and personal records. See who has the most achievements, longest win streaks, and perfect tournaments.
+                        </p>
+
+                        <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-1 text-indigo-600">
+                                <Trophy className="w-4 h-4" />
+                                <span className="font-medium">23 Achievements</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-gray-500">
+                                <Target className="w-4 h-4" />
+                                <span>4 Record Categories</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex items-center gap-2 text-indigo-600 font-medium group-hover:gap-3 transition-all">
+                            <span>View Achievements & Records</span>
+                            <ArrowLeft className="w-4 h-4 rotate-180" />
+                        </div>
+                    </button>
                 </div>
 
                 {/* Info Section */}

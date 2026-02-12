@@ -12,6 +12,7 @@ import TournamentPage from './pages/TournamentPage';
 import StatsLandingPage from './pages/StatsLandingPage';
 import FinalsStatsPage from './pages/FinalsStatsPage';
 import OverviewStatsPage from './pages/OverviewStatsPage';
+import AchievementsStatsPage from './pages/AchievementsStatsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import TournamentPublicView from './pages/TournamentPublicView';
 import PlayerProfilePage from './pages/PlayerProfilePage';
@@ -63,6 +64,7 @@ function App() {
               <Route path="/stats" element={<StatsLandingPage user={user} />} />
               <Route path="/stats/finals" element={<FinalsStatsPage user={user} />} />
               <Route path="/stats/overview" element={<OverviewStatsPage user={user} />} />
+              <Route path="/stats/achievements" element={<AchievementsStatsPage user={user} />} />
               <Route path="/tournament/:id" element={<TournamentPage user={user} />} />
               <Route path="/profile" element={<PlayerProfilePage user={user} />} />
               <Route path="/profile/:userId" element={<PlayerProfilePage user={user} />} />
