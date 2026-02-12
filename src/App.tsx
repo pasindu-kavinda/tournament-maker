@@ -9,7 +9,9 @@ import TournamentsPage from './pages/admin/TournamentsPage';
 import TournamentEditorPage from './pages/admin/TournamentEditorPage';
 import HomePage from './pages/HomePage';
 import TournamentPage from './pages/TournamentPage';
-import StatsPage from './pages/StatsPage';
+import StatsLandingPage from './pages/StatsLandingPage';
+import FinalsStatsPage from './pages/FinalsStatsPage';
+import OverviewStatsPage from './pages/OverviewStatsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import TournamentPublicView from './pages/TournamentPublicView';
 import PlayerProfilePage from './pages/PlayerProfilePage';
@@ -58,11 +60,13 @@ function App() {
           ) : (
             <>
               <Route path="/" element={<HomePage user={user} />} />
-              <Route path="/stats" element={<StatsPage user={user} />} />
+              <Route path="/stats" element={<StatsLandingPage user={user} />} />
+              <Route path="/stats/finals" element={<FinalsStatsPage user={user} />} />
+              <Route path="/stats/overview" element={<OverviewStatsPage user={user} />} />
               <Route path="/tournament/:id" element={<TournamentPage user={user} />} />
               <Route path="/profile" element={<PlayerProfilePage user={user} />} />
               <Route path="/profile/:userId" element={<PlayerProfilePage user={user} />} />
-              
+
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
@@ -70,7 +74,7 @@ function App() {
                 <Route path="tournaments" element={<TournamentsPage />} />
                 <Route path="tournament/:id" element={<TournamentEditorPage />} />
               </Route>
-              
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </>
           )}

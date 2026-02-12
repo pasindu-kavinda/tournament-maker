@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Users, Medal, TrendingUp, ArrowLeft, User as UserIcon, Download, Filter } from 'lucide-react';
+import { Trophy, Users, Medal, ArrowLeft, User as UserIcon, Download, Filter } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface StatsPageProps {
     user: User;
@@ -108,7 +107,7 @@ function StatsPage({ user }: StatsPageProps) {
         const now = new Date();
         let startDate: Date | null = null;
         let endDate = now;
-        
+
         if (dateFilter === 'thisYear') {
             startDate = new Date(now.getFullYear(), 0, 1);
         } else if (dateFilter === 'lastYear') {
@@ -121,7 +120,7 @@ function StatsPage({ user }: StatsPageProps) {
             startDate = lastMonth;
             endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
         }
-        
+
         return { startDate, endDate };
     };
 
@@ -161,7 +160,7 @@ function StatsPage({ user }: StatsPageProps) {
 
     const loadPlayerStats = async () => {
         const { startDate, endDate } = getDateRange();
-        
+
         // Get all matches where round = 'final' and is_completed = true
         let matchesQuery = supabase
             .from('matches')
@@ -173,7 +172,7 @@ function StatsPage({ user }: StatsPageProps) {
       `)
             .eq('round', 'final')
             .eq('is_completed', true);
-        
+
         if (startDate) {
             matchesQuery = matchesQuery
                 .gte('tournaments.created_at', startDate.toISOString())
@@ -281,7 +280,7 @@ function StatsPage({ user }: StatsPageProps) {
 
     const loadDuoStats = async () => {
         const { startDate, endDate } = getDateRange();
-        
+
         // Get all final matches
         let matchesQuery = supabase
             .from('matches')
@@ -293,7 +292,7 @@ function StatsPage({ user }: StatsPageProps) {
       `)
             .eq('round', 'final')
             .eq('is_completed', true);
-        
+
         if (startDate) {
             matchesQuery = matchesQuery
                 .gte('tournaments.created_at', startDate.toISOString())
@@ -389,12 +388,12 @@ function StatsPage({ user }: StatsPageProps) {
 
     const loadTeamNameStats = async () => {
         const { startDate, endDate } = getDateRange();
-        
+
         // Get all teams across all tournaments with date filtering
         let teamsQuery = supabase
             .from('teams')
             .select('*, tournaments!inner(created_at)');
-        
+
         if (startDate) {
             teamsQuery = teamsQuery
                 .gte('tournaments.created_at', startDate.toISOString())
@@ -442,7 +441,7 @@ function StatsPage({ user }: StatsPageProps) {
       `)
             .eq('round', 'final')
             .eq('is_completed', true);
-        
+
         if (startDate) {
             finalMatchesQuery = finalMatchesQuery
                 .gte('tournaments.created_at', startDate.toISOString())
@@ -491,11 +490,11 @@ function StatsPage({ user }: StatsPageProps) {
                 <header className="mb-8">
                     <div className="flex items-center justify-between mb-4">
                         <button
-                            onClick={() => navigate('/')}
+                            onClick={() => navigate('/stats')}
                             className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition"
                         >
                             <ArrowLeft className="w-5 h-5" />
-                            <span>Back to Home</span>
+                            <span>Back to Stats</span>
                         </button>
 
                         <div className="flex items-center gap-2 text-gray-600">
@@ -506,62 +505,57 @@ function StatsPage({ user }: StatsPageProps) {
 
                     <div className="text-center">
                         <div className="flex items-center justify-center gap-3 mb-2">
-                            <TrendingUp className="w-10 h-10 text-indigo-600" />
-                            <h1 className="text-4xl font-bold text-gray-800">Tournament Statistics</h1>
+                            <Trophy className="w-10 h-10 text-yellow-500" />
+                            <h1 className="text-4xl font-bold text-gray-800">Finals Statistics</h1>
                         </div>
-                        <p className="text-gray-600">Performance analytics across all tournaments</p>
+                        <p className="text-gray-600">Championship performance across all tournaments</p>
                     </div>
-                    
+
                     {/* Date Filter */}
                     <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
                         <Filter className="w-4 h-4 text-gray-600" />
                         <button
                             onClick={() => setDateFilter('all')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                                dateFilter === 'all'
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'all'
                                     ? 'bg-indigo-600 text-white'
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                                }`}
                         >
                             All Time
                         </button>
                         <button
                             onClick={() => setDateFilter('thisYear')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                                dateFilter === 'thisYear'
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'thisYear'
                                     ? 'bg-indigo-600 text-white'
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                                }`}
                         >
                             This Year
                         </button>
                         <button
                             onClick={() => setDateFilter('lastYear')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                                dateFilter === 'lastYear'
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'lastYear'
                                     ? 'bg-indigo-600 text-white'
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                                }`}
                         >
                             Last Year
                         </button>
                         <button
                             onClick={() => setDateFilter('thisMonth')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                                dateFilter === 'thisMonth'
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'thisMonth'
                                     ? 'bg-indigo-600 text-white'
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                                }`}
                         >
                             This Month
                         </button>
                         <button
                             onClick={() => setDateFilter('lastMonth')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                                dateFilter === 'lastMonth'
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'lastMonth'
                                     ? 'bg-indigo-600 text-white'
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                                }`}
                         >
                             Last Month
                         </button>
