@@ -15,8 +15,14 @@ interface PlayerStats {
     matchesWon: number;
     totalPoints: number;
     winRate: number;
+    finalsMatches: number;
+    finalsWins: number;
+    finalsWinRate: number;
+    recentForm: string; // e.g., "W-W-L-W-W"
+    currentStreak: { type: 'W' | 'L'; count: number } | null;
     achievements: Achievement[];
     recentTournaments: TournamentHistory[];
+    recentMatches: MatchHistory[];
 }
 
 interface Achievement {
@@ -35,6 +41,15 @@ interface TournamentHistory {
     placement: number;
     totalTeams: number;
     completedAt: string;
+}
+
+interface MatchHistory {
+    matchId: string;
+    opponent: string;
+    result: 'W' | 'L';
+    round: string;
+    tournamentName: string;
+    playedAt: string;
 }
 
 function PlayerProfilePage({ user }: PlayerProfilePageProps) {
@@ -138,8 +153,14 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
                 matchesWon: 0,
                 totalPoints: 0,
                 winRate: 0,
+                finalsMatches: 0,
+                finalsWins: 0,
+                finalsWinRate: 0,
+                recentForm: '',
+                currentStreak: null,
                 achievements: [],
-                recentTournaments: []
+                recentTournaments: [],
+                recentMatches: []
             });
             setLoading(false);
             return;
@@ -153,17 +174,51 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
             return tournamentDate >= startDate && tournamentDate <= endDate;
         }) : teams;
 
-        // Calculate stats
+        // Calculate stats using ACCURATE match-based queries (matching stats page logic)
         let totalMatches = 0;
         let matchesWon = 0;
         let totalPoints = 0;
-        let tournamentsWon = 0;
         const tournaments = new Set<string>();
 
+        // Get all team IDs for this player
+        const teamIds = filteredTeams.map(t => t.id);
+
+        // Query ALL completed matches where player's teams participated
+        const { data: allMatches } = await supabase
+            .from('matches')
+            .select(`
+                *,
+                team1:teams!matches_team1_id_fkey(id, name, members),
+                team2:teams!matches_team2_id_fkey(id, name, members),
+                tournaments!inner(created_at)
+            `)
+            .eq('is_completed', true)
+            .or(`team1_id.in.(${teamIds.join(',')}),team2_id.in.(${teamIds.join(',')})`);
+
+        // Filter matches by date if needed
+        const filteredMatches = startDate && allMatches ? allMatches.filter(match => {
+            const matchDate = new Date(match.tournaments.created_at);
+            return matchDate >= startDate && matchDate <= endDate;
+        }) : allMatches || [];
+
+        // Count matches and wins accurately based on actual match results
+        filteredMatches.forEach(match => {
+            const isTeam1 = teamIds.includes(match.team1_id);
+            const isTeam2 = teamIds.includes(match.team2_id);
+
+            if (isTeam1 || isTeam2) {
+                totalMatches++;
+
+                // Count win if this player's team won
+                if (match.winner_id && teamIds.includes(match.winner_id)) {
+                    matchesWon++;
+                }
+            }
+        });
+
+        // Calculate points and tournament participation from teams table
         filteredTeams.forEach(team => {
             tournaments.add(team.tournament_id);
-            totalMatches += team.matches_played || 0;
-            matchesWon += team.wins || 0;
             totalPoints += team.points || 0;
         });
 
@@ -202,10 +257,6 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
 
                 const placement = sortedTeams.findIndex(t => t.id === team.id) + 1;
 
-                if (placement === 1) {
-                    tournamentsWon++;
-                }
-
                 tournamentHistory.push({
                     tournamentId: tournament.id,
                     tournamentName: tournament.name,
@@ -218,7 +269,64 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
             }
         });
 
-        // Calculate achievements
+        // Calculate finals-specific stats
+        const finalsMatches = filteredMatches.filter(m => m.round === 'final');
+        const finalsWins = finalsMatches.filter(m =>
+            m.winner_id && teamIds.includes(m.winner_id)
+        ).length;
+        const finalsWinRate = finalsMatches.length > 0
+            ? (finalsWins / finalsMatches.length) * 100
+            : 0;
+
+        // Tournaments Won = Finals Won (winning a tournament means winning the final)
+        const tournamentsWon = finalsWins;
+
+        // Calculate recent match history (last 10 matches, properly sorted by date)
+        // First, sort ALL matches by created_at to ensure chronological order
+        const sortedByDate = [...filteredMatches].sort((a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+
+        const recentMatches: MatchHistory[] = sortedByDate
+            .slice(-50) // Get last 50 matches
+            .map(match => {
+                const playerTeamId = teamIds.includes(match.team1_id) ? match.team1_id : match.team2_id;
+                const opponentTeam = playerTeamId === match.team1_id ? match.team2 : match.team1;
+                const tournament = match.tournaments;
+
+                return {
+                    matchId: match.id,
+                    opponent: opponentTeam?.name || 'Unknown',
+                    result: (match.winner_id === playerTeamId ? 'W' : 'L') as 'W' | 'L',
+                    round: match.round || 'Unknown',
+                    tournamentName: tournament?.name || 'Unknown',
+                    playedAt: match.created_at
+                };
+            })
+            .reverse(); // Reverse to show newest first
+
+        // Calculate recent form string (W-L-W-W-L)
+        const recentForm = recentMatches.map(m => m.result).join('-');
+
+        // Calculate current streak
+        let currentStreak: { type: 'W' | 'L'; count: number } | null = null;
+        if (recentMatches.length > 0) {
+            const latestResult = recentMatches[0].result;
+            let streakCount = 1;
+
+            for (let i = 1; i < recentMatches.length; i++) {
+                if (recentMatches[i].result === latestResult) {
+                    streakCount++;
+                } else {
+                    break;
+                }
+            }
+
+            currentStreak = { type: latestResult, count: streakCount };
+        }
+
+        // Calculate winRate and achievements (after tournamentsWon is defined)
+        const winRate = totalMatches > 0 ? (matchesWon / totalMatches) * 100 : 0;
         const achievements: Achievement[] = [];
 
         if (tournamentsWon >= 1) {
@@ -251,8 +359,6 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
             });
         }
 
-        const winRate = totalMatches > 0 ? (matchesWon / totalMatches) * 100 : 0;
-
         if (winRate >= 70 && totalMatches >= 10) {
             achievements.push({
                 id: '4',
@@ -273,6 +379,17 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
             });
         }
 
+        // Add finals specialist achievement
+        if (finalsWinRate >= 60 && finalsMatches.length >= 3) {
+            achievements.push({
+                id: '6',
+                title: '👑 Finals Specialist',
+                description: `${finalsWinRate.toFixed(0)}% win rate in finals`,
+                icon: '👑',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
         setStats({
             totalTournaments: tournaments.size,
             tournamentsWon,
@@ -280,10 +397,16 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
             matchesWon,
             totalPoints,
             winRate,
+            finalsMatches: finalsMatches.length,
+            finalsWins,
+            finalsWinRate,
+            recentForm,
+            currentStreak,
             achievements,
             recentTournaments: tournamentHistory.sort((a, b) =>
                 new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
-            ).slice(0, 10)
+            ).slice(0, 10),
+            recentMatches
         });
 
         setLoading(false);
@@ -462,6 +585,79 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
                         <p className="text-sm text-gray-600">Total Points</p>
                     </div>
                 </div>
+
+                {/* Finals Performance Section */}
+                {stats.finalsMatches > 0 && (
+                    <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl shadow-lg p-6 mb-8 border border-yellow-200">
+                        <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                            <Trophy className="w-6 h-6 text-yellow-600" />
+                            Finals Performance
+                        </h2>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="text-center">
+                                <p className="text-3xl font-bold text-yellow-700">{stats.finalsMatches}</p>
+                                <p className="text-sm text-gray-600">Finals Played</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-3xl font-bold text-green-600">{stats.finalsWins}</p>
+                                <p className="text-sm text-gray-600">Finals Won</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-3xl font-bold text-indigo-600">{stats.finalsWinRate.toFixed(0)}%</p>
+                                <p className="text-sm text-gray-600">Finals Win Rate</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Recent Form Section */}
+                {stats.recentForm && (
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                        <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+                            <TrendingUp className="w-6 h-6 text-indigo-600" />
+                            Recent Form
+                        </h2>
+                        <div className="flex flex-col gap-4">
+                            {/* Form String */}
+                            <div>
+                                <p className="text-sm text-gray-600 mb-2">
+                                    Last {stats.recentMatches.length} Matches
+                                    <span className="ml-2 text-xs text-yellow-600">● = Finals</span>
+                                </p>
+                                <div className="flex gap-2 flex-wrap">
+                                    {stats.recentMatches.map((match) => (
+                                        <div key={match.matchId} className="relative">
+                                            <div
+                                                className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white relative ${match.result === 'W' ? 'bg-green-500' : 'bg-red-500'
+                                                    } ${match.round === 'final' ? 'ring-4 ring-yellow-400' : ''
+                                                    }`}
+                                                title={`${match.result === 'W' ? 'Won' : 'Lost'} vs ${match.opponent}\n${match.round.toUpperCase()} - ${match.tournamentName}\n${new Date(match.playedAt).toLocaleDateString()}`}
+                                            >
+                                                {match.result}
+                                                {/* Finals indicator dot */}
+                                                {match.round === 'final' && (
+                                                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white"></div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Current Streak */}
+                            {stats.currentStreak && (
+                                <div className={`p-4 rounded-lg ${stats.currentStreak.type === 'W'
+                                    ? 'bg-green-100 border border-green-300'
+                                    : 'bg-red-100 border border-red-300'
+                                    }`}>
+                                    <p className="font-semibold">
+                                        Current Streak: {stats.currentStreak.count} {stats.currentStreak.type === 'W' ? 'Wins' : 'Losses'} 🔥
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Achievements */}
                 {stats.achievements.length > 0 && (
