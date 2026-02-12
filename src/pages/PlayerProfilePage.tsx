@@ -21,16 +21,28 @@ interface PlayerStats {
     recentForm: string; // e.g., "W-W-L-W-W"
     currentStreak: { type: 'W' | 'L'; count: number } | null;
     achievements: Achievement[];
+    records: PlayerRecords;
     recentTournaments: TournamentHistory[];
     recentMatches: MatchHistory[];
 }
+
+interface PlayerRecords {
+    backToBackTitles: number; // Consecutive tournament wins
+    longestWinStreak: number; // All-time best win streak
+    finalsStreak: number; // Consecutive finals appearances
+    perfectTournaments: number; // Won tournament without losing
+}
+
 
 interface Achievement {
     id: string;
     title: string;
     description: string;
     icon: string;
+    tier: 'beginner' | 'intermediate' | 'advanced' | 'elite';
+    category: 'tournament' | 'winrate' | 'activity' | 'finals' | 'streak' | 'milestone';
     earnedAt: string;
+    isDynamic?: boolean; // Can be lost (e.g., streaks)
 }
 
 interface TournamentHistory {
@@ -159,6 +171,12 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
                 recentForm: '',
                 currentStreak: null,
                 achievements: [],
+                records: {
+                    backToBackTitles: 0,
+                    longestWinStreak: 0,
+                    finalsStreak: 0,
+                    perfectTournaments: 0
+                },
                 recentTournaments: [],
                 recentMatches: []
             });
@@ -325,69 +343,356 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
             currentStreak = { type: latestResult, count: streakCount };
         }
 
+
         // Calculate winRate and achievements (after tournamentsWon is defined)
         const winRate = totalMatches > 0 ? (matchesWon / totalMatches) * 100 : 0;
         const achievements: Achievement[] = [];
 
+
+        // ========================================
+        // CATEGORY 1: Tournament Success
+        // ========================================
         if (tournamentsWon >= 1) {
             achievements.push({
-                id: '1',
-                title: '🏆 Champion',
-                description: `Won ${tournamentsWon} tournament${tournamentsWon > 1 ? 's' : ''}`,
+                id: 'tournament_first_blood',
+                title: '🏆 First Blood',
+                description: 'Won your first tournament',
                 icon: '🏆',
+                tier: 'beginner',
+                category: 'tournament',
                 earnedAt: new Date().toISOString()
             });
         }
 
-        if (tournaments.size >= 5) {
+        if (tournamentsWon >= 3) {
             achievements.push({
-                id: '2',
-                title: '🎯 Veteran',
+                id: 'tournament_champion',
+                title: '🥇 Champion',
+                description: `Won ${tournamentsWon} tournaments`,
+                icon: '🥇',
+                tier: 'intermediate',
+                category: 'tournament',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
+        if (tournamentsWon >= 5) {
+            achievements.push({
+                id: 'tournament_dynasty',
+                title: '👑 Dynasty',
+                description: `Won ${tournamentsWon} tournaments`,
+                icon: '👑',
+                tier: 'advanced',
+                category: 'tournament',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
+        if (tournamentsWon >= 10) {
+            achievements.push({
+                id: 'tournament_legend',
+                title: '🌟 Legend',
+                description: `Won ${tournamentsWon} tournaments`,
+                icon: '🌟',
+                tier: 'elite',
+                category: 'tournament',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
+        // ========================================
+        // CATEGORY 2: Win Rate Excellence
+        // ========================================
+        if (winRate >= 60 && totalMatches >= 20) {
+            achievements.push({
+                id: 'winrate_rising_star',
+                title: '📈 Rising Star',
+                description: `${winRate.toFixed(0)}% win rate (${totalMatches} matches)`,
+                icon: '📈',
+                tier: 'intermediate',
+                category: 'winrate',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
+        if (winRate >= 70 && totalMatches >= 30) {
+            achievements.push({
+                id: 'winrate_dominator',
+                title: '🔥 Dominator',
+                description: `${winRate.toFixed(0)}% win rate (${totalMatches} matches)`,
+                icon: '🔥',
+                tier: 'advanced',
+                category: 'winrate',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
+        if (winRate >= 80 && totalMatches >= 40) {
+            achievements.push({
+                id: 'winrate_unstoppable',
+                title: '⚡ Unstoppable',
+                description: `${winRate.toFixed(0)}% win rate (${totalMatches} matches)`,
+                icon: '⚡',
+                tier: 'elite',
+                category: 'winrate',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
+        // ========================================
+        // CATEGORY 3: Activity & Dedication
+        // ========================================
+        if (tournaments.size >= 10) {
+            achievements.push({
+                id: 'activity_regular',
+                title: '🎯 Regular',
                 description: `Participated in ${tournaments.size} tournaments`,
                 icon: '🎯',
+                tier: 'beginner',
+                category: 'activity',
                 earnedAt: new Date().toISOString()
             });
         }
 
-        if (matchesWon >= 10) {
+        if (totalMatches >= 100) {
             achievements.push({
-                id: '3',
-                title: '⚡ Winner',
-                description: `Won ${matchesWon} matches`,
-                icon: '⚡',
+                id: 'activity_grinder',
+                title: '🏃 Grinder',
+                description: `Played ${totalMatches} matches`,
+                icon: '🏃',
+                tier: 'intermediate',
+                category: 'activity',
                 earnedAt: new Date().toISOString()
             });
         }
 
-        if (winRate >= 70 && totalMatches >= 10) {
+        if (totalMatches >= 250) {
             achievements.push({
-                id: '4',
-                title: '🔥 Hot Streak',
-                description: `${winRate.toFixed(0)}% win rate`,
-                icon: '🔥',
+                id: 'activity_iron_man',
+                title: '💪 Iron Man',
+                description: `Played ${totalMatches} matches`,
+                icon: '💪',
+                tier: 'advanced',
+                category: 'activity',
                 earnedAt: new Date().toISOString()
             });
         }
 
-        if (totalPoints >= 100) {
+        if (totalMatches >= 500) {
             achievements.push({
-                id: '5',
-                title: '💯 Century',
-                description: `Scored ${totalPoints} total points`,
-                icon: '💯',
+                id: 'activity_marathon',
+                title: '🦾 Marathon Runner',
+                description: `Played ${totalMatches} matches`,
+                icon: '🦾',
+                tier: 'elite',
+                category: 'activity',
                 earnedAt: new Date().toISOString()
             });
         }
 
-        // Add finals specialist achievement
-        if (finalsWinRate >= 60 && finalsMatches.length >= 3) {
+        // ========================================
+        // CATEGORY 4: Finals Performance
+        // ========================================
+        if (finalsWinRate >= 70 && finalsMatches.length >= 5) {
             achievements.push({
-                id: '6',
+                id: 'finals_specialist',
                 title: '👑 Finals Specialist',
-                description: `${finalsWinRate.toFixed(0)}% win rate in finals`,
+                description: `${finalsWinRate.toFixed(0)}% win rate in ${finalsMatches.length} finals`,
                 icon: '👑',
+                tier: 'advanced',
+                category: 'finals',
                 earnedAt: new Date().toISOString()
             });
+        }
+
+        if (finalsWinRate >= 80 && finalsMatches.length >= 8) {
+            achievements.push({
+                id: 'finals_clutch',
+                title: '💎 Clutch Player',
+                description: `${finalsWinRate.toFixed(0)}% win rate in ${finalsMatches.length} finals`,
+                icon: '💎',
+                tier: 'elite',
+                category: 'finals',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
+        if (finalsMatches.length >= 20) {
+            achievements.push({
+                id: 'finals_machine',
+                title: '🎖️ Finals Machine',
+                description: `Reached ${finalsMatches.length} finals`,
+                icon: '🎖️',
+                tier: 'elite',
+                category: 'finals',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
+        // ========================================
+        // CATEGORY 5: Streaks (Dynamic)
+        // ========================================
+        if (currentStreak && currentStreak.type === 'W') {
+            if (currentStreak.count >= 10) {
+                achievements.push({
+                    id: 'streak_tsunami',
+                    title: '🌊 Tsunami',
+                    description: `${currentStreak.count} win streak`,
+                    icon: '🌊',
+                    tier: 'elite',
+                    category: 'streak',
+                    earnedAt: new Date().toISOString(),
+                    isDynamic: true
+                });
+            } else if (currentStreak.count >= 5) {
+                achievements.push({
+                    id: 'streak_on_fire',
+                    title: '🔥 On Fire',
+                    description: `${currentStreak.count} win streak`,
+                    icon: '🔥',
+                    tier: 'intermediate',
+                    category: 'streak',
+                    earnedAt: new Date().toISOString(),
+                    isDynamic: true
+                });
+            }
+        }
+
+        if (currentStreak && currentStreak.type === 'L' && currentStreak.count >= 5) {
+            achievements.push({
+                id: 'streak_ice_cold',
+                title: '❄️ Ice Cold',
+                description: `${currentStreak.count} loss streak`,
+                icon: '❄️',
+                tier: 'beginner',
+                category: 'streak',
+                earnedAt: new Date().toISOString(),
+                isDynamic: true
+            });
+        }
+
+        // ========================================
+        // CATEGORY 6: Milestones
+        // ========================================
+        if (matchesWon >= 100) {
+            achievements.push({
+                id: 'milestone_century',
+                title: '💯 Century',
+                description: `Won ${matchesWon} matches`,
+                icon: '💯',
+                tier: 'intermediate',
+                category: 'milestone',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
+        if (matchesWon >= 200) {
+            achievements.push({
+                id: 'milestone_double_century',
+                title: '🎊 Double Century',
+                description: `Won ${matchesWon} matches`,
+                icon: '🎊',
+                tier: 'advanced',
+                category: 'milestone',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
+        if (matchesWon >= 500) {
+            achievements.push({
+                id: 'milestone_half_millennium',
+                title: '🏅 Half Millennium',
+                description: `Won ${matchesWon} matches`,
+                icon: '🏅',
+                tier: 'elite',
+                category: 'milestone',
+                earnedAt: new Date().toISOString()
+            });
+        }
+
+        // ========================================
+        // CALCULATE RECORDS
+        // ========================================
+
+        // 1. Back-to-Back Titles (consecutive tournament wins)
+        let backToBackTitles = 0;
+        let currentBackToBack = 0;
+
+        // Sort tournaments by completion date
+        const sortedTournaments = tournamentHistory.sort((a, b) =>
+            new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
+        );
+
+        for (const tournament of sortedTournaments) {
+            if (tournament.placement === 1) {
+                currentBackToBack++;
+                backToBackTitles = Math.max(backToBackTitles, currentBackToBack);
+            } else {
+                currentBackToBack = 0;
+            }
+        }
+
+        // 2. Longest Win Streak (all-time best)
+        let longestWinStreak = 0;
+        let currentWinStreak = 0;
+
+        // Use ALL matches sorted by date (not just recent 50)
+        const allMatchesSorted = [...filteredMatches].sort((a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+
+        for (const match of allMatchesSorted) {
+            const playerTeamId = teamIds.includes(match.team1_id) ? match.team1_id : match.team2_id;
+            const won = match.winner_id === playerTeamId;
+
+            if (won) {
+                currentWinStreak++;
+                longestWinStreak = Math.max(longestWinStreak, currentWinStreak);
+            } else {
+                currentWinStreak = 0;
+            }
+        }
+
+        // 3. Finals Streak (consecutive finals appearances)
+        let finalsStreak = 0;
+        let currentFinalsStreak = 0;
+
+        for (const tournament of sortedTournaments) {
+            // Check if player reached finals (placement 1 or 2)
+            if (tournament.placement === 1 || tournament.placement === 2) {
+                currentFinalsStreak++;
+                finalsStreak = Math.max(finalsStreak, currentFinalsStreak);
+            } else {
+                currentFinalsStreak = 0;
+            }
+        }
+
+        // 4. Perfect Tournaments (won without losing a match)
+        let perfectTournaments = 0;
+
+        // Group matches by tournament
+        const matchesByTournament = new Map<string, any[]>();
+        for (const match of allMatchesSorted) {
+            const tournamentId = match.tournament_id;
+            if (!matchesByTournament.has(tournamentId)) {
+                matchesByTournament.set(tournamentId, []);
+            }
+            matchesByTournament.get(tournamentId)!.push(match);
+        }
+
+        // Check each tournament where player won
+        for (const tournament of tournamentHistory) {
+            if (tournament.placement === 1) {
+                const tournamentMatches = matchesByTournament.get(tournament.tournamentId) || [];
+                const allWins = tournamentMatches.every(match => {
+                    const playerTeamId = teamIds.includes(match.team1_id) ? match.team1_id : match.team2_id;
+                    return match.winner_id === playerTeamId;
+                });
+
+                if (allWins && tournamentMatches.length > 0) {
+                    perfectTournaments++;
+                }
+            }
         }
 
         setStats({
@@ -403,6 +708,12 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
             recentForm,
             currentStreak,
             achievements,
+            records: {
+                backToBackTitles,
+                longestWinStreak,
+                finalsStreak,
+                perfectTournaments
+            },
             recentTournaments: tournamentHistory.sort((a, b) =>
                 new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
             ).slice(0, 10),
@@ -658,6 +969,70 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
                         </div>
                     </div>
                 )}
+
+                {/* Personal Records */}
+                {(stats.records.backToBackTitles > 0 || stats.records.longestWinStreak > 0 ||
+                    stats.records.finalsStreak > 0 || stats.records.perfectTournaments > 0) && (
+                        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl shadow-lg p-6 mb-8 border border-amber-200">
+                            <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+                                <Trophy className="w-6 h-6 text-amber-600" />
+                                📊 Personal Records
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {stats.records.backToBackTitles > 0 && (
+                                    <div className="bg-white rounded-lg p-4 border-l-4 border-amber-500">
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-3xl">🏆</div>
+                                            <div>
+                                                <p className="text-sm text-gray-600">Back-to-Back Titles</p>
+                                                <p className="text-2xl font-bold text-amber-700">{stats.records.backToBackTitles}</p>
+                                                <p className="text-xs text-gray-500">Consecutive tournament wins</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {stats.records.longestWinStreak > 0 && (
+                                    <div className="bg-white rounded-lg p-4 border-l-4 border-green-500">
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-3xl">🔥</div>
+                                            <div>
+                                                <p className="text-sm text-gray-600">Longest Win Streak</p>
+                                                <p className="text-2xl font-bold text-green-700">{stats.records.longestWinStreak}</p>
+                                                <p className="text-xs text-gray-500">All-time best</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {stats.records.finalsStreak > 0 && (
+                                    <div className="bg-white rounded-lg p-4 border-l-4 border-purple-500">
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-3xl">👑</div>
+                                            <div>
+                                                <p className="text-sm text-gray-600">Finals Streak</p>
+                                                <p className="text-2xl font-bold text-purple-700">{stats.records.finalsStreak}</p>
+                                                <p className="text-xs text-gray-500">Consecutive finals appearances</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {stats.records.perfectTournaments > 0 && (
+                                    <div className="bg-white rounded-lg p-4 border-l-4 border-blue-500">
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-3xl">💎</div>
+                                            <div>
+                                                <p className="text-sm text-gray-600">Perfect Tournaments</p>
+                                                <p className="text-2xl font-bold text-blue-700">{stats.records.perfectTournaments}</p>
+                                                <p className="text-xs text-gray-500">Won without losing</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                 {/* Achievements */}
                 {stats.achievements.length > 0 && (
