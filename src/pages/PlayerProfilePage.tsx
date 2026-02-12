@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trophy, Target, TrendingUp, Award, Calendar, Users, ArrowLeft, Filter } from 'lucide-react';
+import { Trophy, Target, TrendingUp, Award, Calendar, Users, ArrowLeft, Filter, Edit2, Save, X } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
@@ -45,7 +45,33 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
     const [playerName, setPlayerName] = useState('');
     const [dateFilter, setDateFilter] = useState<'all' | 'thisYear' | 'lastYear' | 'thisMonth' | 'lastMonth'>('all');
 
+    const [isEditing, setIsEditing] = useState(false);
+    const [editName, setEditName] = useState('');
     const targetUserId = userId || user.id;
+    const isOwnProfile = user.id === targetUserId;
+
+    useEffect(() => {
+        if (playerName) setEditName(playerName);
+    }, [playerName]);
+
+    const handleUpdateProfile = async () => {
+        if (!editName.trim()) return;
+
+        try {
+            const { error } = await supabase
+                .from('users')
+                .update({ full_name: editName })
+                .eq('id', user.id);
+
+            if (error) throw error;
+
+            setPlayerName(editName);
+            setIsEditing(false);
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            alert('Failed to update profile');
+        }
+    };
 
     useEffect(() => {
         loadPlayerStats();
@@ -69,7 +95,7 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
         const now = new Date();
         let startDate: Date | null = null;
         let endDate = now;
-        
+
         if (dateFilter === 'thisYear') {
             startDate = new Date(now.getFullYear(), 0, 1);
         } else if (dateFilter === 'lastYear') {
@@ -143,7 +169,7 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
 
         // Get tournament placements - optimized to fetch all in parallel
         const tournamentHistory: TournamentHistory[] = [];
-        
+
         // Group teams by tournament to batch queries
         const completedTournaments = filteredTeams.filter(team => {
             const tournament = Array.isArray(team.tournaments) ? team.tournaments[0] : team.tournaments;
@@ -151,7 +177,7 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
         });
 
         // Fetch all tournament teams data in parallel
-        const tournamentTeamsPromises = completedTournaments.map(team => 
+        const tournamentTeamsPromises = completedTournaments.map(team =>
             supabase
                 .from('teams')
                 .select('id, wins, points, lead_points')
@@ -304,59 +330,94 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
                             {playerName.charAt(0).toUpperCase()}
                         </div>
                     </div>
-                    <h1 className="text-4xl font-bold text-gray-800 mb-2">{playerName}</h1>
+                    {isEditing ? (
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                            <input
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="text-4xl font-bold text-gray-800 text-center bg-transparent border-b-2 border-indigo-600 focus:outline-none w-full max-w-md px-2"
+                                autoFocus
+                            />
+                            <button
+                                onClick={handleUpdateProfile}
+                                className="p-2 bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition"
+                                title="Save"
+                            >
+                                <Save className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsEditing(false);
+                                    setEditName(playerName);
+                                }}
+                                className="p-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition"
+                                title="Cancel"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center gap-3 mb-2">
+                            <h1 className="text-4xl font-bold text-gray-800">{playerName}</h1>
+                            {isOwnProfile && (
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition"
+                                    title="Edit Profile"
+                                >
+                                    <Edit2 className="w-5 h-5" />
+                                </button>
+                            )}
+                        </div>
+                    )}
                     <p className="text-gray-600">Player Profile & Achievements</p>
-                    
+
                     {/* Date Filter */}
                     <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
                         <Filter className="w-4 h-4 text-gray-600" />
                         <button
                             onClick={() => setDateFilter('all')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                                dateFilter === 'all'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'all'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
                         >
                             All Time
                         </button>
                         <button
                             onClick={() => setDateFilter('thisYear')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                                dateFilter === 'thisYear'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'thisYear'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
                         >
                             This Year
                         </button>
                         <button
                             onClick={() => setDateFilter('lastYear')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                                dateFilter === 'lastYear'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'lastYear'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
                         >
                             Last Year
                         </button>
                         <button
                             onClick={() => setDateFilter('thisMonth')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                                dateFilter === 'thisMonth'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'thisMonth'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
                         >
                             This Month
                         </button>
                         <button
                             onClick={() => setDateFilter('lastMonth')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                                dateFilter === 'lastMonth'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'lastMonth'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
                         >
                             Last Month
                         </button>
@@ -443,10 +504,10 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
                                     <div className="flex items-center justify-between mb-2">
                                         <h3 className="font-semibold text-gray-800">{tournament.tournamentName}</h3>
                                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${tournament.placement === 1
-                                                ? 'bg-yellow-100 text-yellow-800'
-                                                : tournament.placement <= 3
-                                                    ? 'bg-blue-100 text-blue-800'
-                                                    : 'bg-gray-100 text-gray-800'
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : tournament.placement <= 3
+                                                ? 'bg-blue-100 text-blue-800'
+                                                : 'bg-gray-100 text-gray-800'
                                             }`}>
                                             {tournament.placement === 1 ? '🥇' : tournament.placement === 2 ? '🥈' : tournament.placement === 3 ? '🥉' : `#${tournament.placement}`} Place
                                         </span>

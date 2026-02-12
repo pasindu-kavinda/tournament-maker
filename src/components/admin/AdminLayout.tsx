@@ -1,12 +1,19 @@
-import { ReactNode } from 'react';
 import { Navigate, Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { Shield, Users, Trophy, Home, ArrowLeft } from 'lucide-react';
 import { useAdmin } from '@/contexts/AdminContext';
 
 function AdminLayout() {
-    const { isAdmin } = useAdmin();
+    const { isAdmin, isLoading } = useAdmin();
     const navigate = useNavigate();
     const location = useLocation();
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent" />
+            </div>
+        );
+    }
 
     if (!isAdmin) {
         return <Navigate to="/" replace />;
@@ -46,8 +53,8 @@ function AdminLayout() {
                             <Link
                                 to="/admin"
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${isActive('/admin')
-                                        ? 'bg-indigo-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 <Home className="w-4 h-4" />
@@ -56,8 +63,8 @@ function AdminLayout() {
                             <Link
                                 to="/admin/users"
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${isActive('/admin/users')
-                                        ? 'bg-indigo-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 <Users className="w-4 h-4" />
@@ -66,8 +73,8 @@ function AdminLayout() {
                             <Link
                                 to="/admin/tournaments"
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${isActive('/admin/tournaments')
-                                        ? 'bg-indigo-600 text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 <Trophy className="w-4 h-4" />
