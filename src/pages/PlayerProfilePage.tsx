@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Trophy, Target, TrendingUp, Award, Calendar, Users, ArrowLeft, Filter, Edit2, Save, X } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import UserDropdown from '@/components/UserDropdown';
 
 interface PlayerProfilePageProps {
     user: User;
@@ -71,6 +72,25 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
     const [loading, setLoading] = useState(true);
     const [playerName, setPlayerName] = useState('');
     const [dateFilter, setDateFilter] = useState<'all' | 'thisYear' | 'lastYear' | 'thisMonth' | 'lastMonth'>('all');
+
+    // For UserDropdown
+    const [loggedInDisplayName, setLoggedInDisplayName] = useState('User');
+
+    useEffect(() => {
+        if (user) {
+            loadLoggedInUserName();
+        }
+    }, [user]);
+
+    const loadLoggedInUserName = async () => {
+        const { data } = await supabase
+            .from('users')
+            .select('full_name')
+            .eq('id', user.id)
+            .single();
+
+        if (data) setLoggedInDisplayName(data.full_name || 'User');
+    };
 
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState('');
@@ -772,13 +792,16 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100">
             <div className="container mx-auto px-4 py-8">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="flex items-center gap-2 mb-6 text-gray-600 hover:text-gray-800"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                    Back
-                </button>
+                <div className="flex items-center justify-between mb-6">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                        Back
+                    </button>
+                    <UserDropdown displayName={loggedInDisplayName} />
+                </div>
 
                 <header className="text-center mb-12">
                     <div className="flex items-center justify-center mb-4">

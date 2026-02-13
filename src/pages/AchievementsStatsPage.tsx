@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Trophy, Award, Medal, ArrowLeft, User as UserIcon, Download, Filter, Crown, Flame, Target } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-
+import UserDropdown from '@/components/UserDropdown';
 interface AchievementsStatsPageProps {
     user: User;
 }
@@ -32,6 +32,21 @@ function AchievementsStatsPage({ user }: AchievementsStatsPageProps) {
     const [activeTab, setActiveTab] = useState<'achievements' | 'records'>('achievements');
     const [loadingTab, setLoadingTab] = useState<string | null>(null);
     const [dateFilter, setDateFilter] = useState<'all' | 'thisYear' | 'lastYear' | 'thisMonth' | 'lastMonth'>('all');
+    const [displayName, setDisplayName] = useState('User');
+
+    useEffect(() => {
+        loadUserName();
+    }, []);
+
+    const loadUserName = async () => {
+        const { data } = await supabase
+            .from('users')
+            .select('full_name')
+            .eq('id', user.id)
+            .single();
+
+        if (data) setDisplayName(data.full_name || 'User');
+    };
 
     const [achievementStats, setAchievementStats] = useState<PlayerAchievementStats[]>([]);
     const [recordStats, setRecordStats] = useState<PlayerRecordStats[]>([]);
@@ -141,21 +156,23 @@ function AchievementsStatsPage({ user }: AchievementsStatsPageProps) {
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">
-                    <button
-                        onClick={() => navigate('/stats')}
-                        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-4"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                        Back to Stats
-                    </button>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
-                                <Trophy className="w-10 h-10 text-indigo-600" />
-                                Achievements & Records
-                            </h1>
-                            <p className="text-gray-600 mt-2">Player achievements and personal records leaderboard</p>
-                        </div>
+                    <div className="flex items-center justify-between mb-4">
+                        <button
+                            onClick={() => navigate('/stats')}
+                            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                            Back to Stats
+                        </button>
+                        <UserDropdown displayName={displayName} />
+                    </div>
+
+                    <div>
+                        <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
+                            <Trophy className="w-10 h-10 text-indigo-600" />
+                            Achievements & Records
+                        </h1>
+                        <p className="text-gray-600 mt-2">Player achievements and personal records leaderboard</p>
                     </div>
                 </div>
 

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, MapPin, User as UserIcon, TrendingUp, Menu, X, Shield } from 'lucide-react';
+import { Trophy, TrendingUp, MapPin } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { useAdmin } from '@/contexts/AdminContext';
 import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport, ToastClose } from '../components/Toast';
+import UserDropdown from '@/components/UserDropdown';
 
 interface HomePageProps {
   user: User;
@@ -25,14 +25,12 @@ const VENUES = [
   'Batapola Badminton Court'
 ];
 
-function HomePage({ user }: HomePageProps) {
+const HomePage = ({ user }: HomePageProps) => {
   const navigate = useNavigate();
-  const { isAdmin } = useAdmin();
   const [tournamentName, setTournamentName] = useState('');
   const [venue, setVenue] = useState(VENUES[0]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [toast, setToast] = useState<{ title: string; description: string; variant: 'success' | 'error' } | null>(null);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [displayName, setDisplayName] = useState('User');
 
   useEffect(() => {
@@ -83,13 +81,8 @@ function HomePage({ user }: HomePageProps) {
     if (error) {
       showToast('Error', error.message, 'error');
     } else if (tournament) {
-      navigate(`/tournament/${tournament.id}`);
+      navigate(`/ tournament / ${tournament.id} `);
     }
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
   };
 
   return (
@@ -112,37 +105,7 @@ function HomePage({ user }: HomePageProps) {
                 <Trophy className="w-12 h-12 text-indigo-600" />
               </div>
               <div className="flex items-center gap-4 flex-1 justify-end">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <UserIcon className="w-4 h-4" />
-                  <span>{displayName}</span>
-                </div>
-                {isAdmin && (
-                  <button
-                    onClick={() => navigate('/admin')}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-sm"
-                  >
-                    <Shield className="w-4 h-4" />
-                    <span className="font-medium">Admin</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => navigate('/profile')}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  My Profile
-                </button>
-                <button
-                  onClick={() => navigate('/reset-password')}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  Reset Password
-                </button>
-                <button
-                  onClick={handleSignOut}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  Sign Out
-                </button>
+                <UserDropdown displayName={displayName} />
               </div>
             </div>
 
@@ -150,73 +113,17 @@ function HomePage({ user }: HomePageProps) {
             <div className="md:hidden">
               <div className="flex items-center justify-between mb-4">
                 <Trophy className="w-10 h-10 text-indigo-600" />
-                <button
-                  onClick={() => setShowMobileMenu(!showMobileMenu)}
-                  className="p-2 text-gray-600 hover:text-gray-800"
-                >
-                  {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                </button>
-              </div>
-
-              {/* Mobile Menu */}
-              {showMobileMenu && (
-                <div className="bg-white rounded-lg shadow-lg p-4 mb-4 space-y-3">
-                  <div className="flex items-center gap-2 px-3 py-2 text-gray-700 border-b">
-                    <UserIcon className="w-4 h-4" />
-                    <span className="font-medium">{displayName}</span>
-                  </div>
+                <div className="flex items-center gap-3">
                   <button
-                    onClick={() => {
-                      navigate('/stats');
-                      setShowMobileMenu(false);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-indigo-600 hover:bg-indigo-50 rounded transition"
+                    onClick={() => navigate('/stats')}
+                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition"
+                    title="View Stats"
                   >
-                    <TrendingUp className="w-4 h-4" />
-                    <span>View Stats</span>
+                    <TrendingUp className="w-6 h-6" />
                   </button>
-                  <button
-                    onClick={() => {
-                      navigate('/profile');
-                      setShowMobileMenu(false);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded transition"
-                  >
-                    <UserIcon className="w-4 h-4" />
-                    <span>My Profile</span>
-                  </button>
-                  {isAdmin && (
-                    <button
-                      onClick={() => {
-                        navigate('/admin');
-                        setShowMobileMenu(false);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-indigo-600 hover:bg-indigo-50 rounded transition font-medium"
-                    >
-                      <Shield className="w-4 h-4" />
-                      <span>Admin Panel</span>
-                    </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      navigate('/reset-password');
-                      setShowMobileMenu(false);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded transition"
-                  >
-                    <span>Reset Password</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleSignOut();
-                      setShowMobileMenu(false);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded transition"
-                  >
-                    <span>Sign Out</span>
-                  </button>
+                  <UserDropdown displayName={displayName} />
                 </div>
-              )}
+              </div>
             </div>
 
             <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Tournament Brackets Maker</h1>
@@ -273,17 +180,17 @@ function HomePage({ user }: HomePageProps) {
                 {tournaments.map(tournament => (
                   <div
                     key={tournament.id}
-                    onClick={() => navigate(`/tournament/${tournament.id}`)}
+                    onClick={() => navigate(`/ tournament / ${tournament.id} `)}
                     className="p-4 border border-gray-200 rounded-lg hover:border-indigo-500 cursor-pointer transition-colors"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-medium">{tournament.name}</h3>
-                      <span className={`px-3 py-1 rounded-full text-sm ${tournament.status === 'completed'
+                      <span className={`px - 3 py - 1 rounded - full text - sm ${tournament.status === 'completed'
                         ? 'bg-green-100 text-green-800'
                         : tournament.status === 'in_progress'
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        } `}>
                         {tournament.status}
                       </span>
                     </div>
@@ -303,14 +210,14 @@ function HomePage({ user }: HomePageProps) {
 
         {toast && (
           <Toast className={`${toast.variant === 'success' ? 'bg-green-50' : 'bg-red-50'
-            }`}>
+            } `}>
             <div className="grid gap-1">
               <ToastTitle className={`${toast.variant === 'success' ? 'text-green-900' : 'text-red-900'
-                }`}>
+                } `}>
                 {toast.title}
               </ToastTitle>
               <ToastDescription className={`${toast.variant === 'success' ? 'text-green-700' : 'text-red-700'
-                }`}>
+                } `}>
                 {toast.description}
               </ToastDescription>
             </div>

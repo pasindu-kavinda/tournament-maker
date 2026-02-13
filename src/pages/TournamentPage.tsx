@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trophy, Users, Target, MapPin, FileText, User as UserIcon, Trash2, TrendingUp, Network, Menu, X } from 'lucide-react';
+import { Trophy, MapPin, Users, Trash2, ArrowLeft, TrendingUp, FileText, Network, Target } from 'lucide-react';
 import TeamInput from '../components/TeamInput';
 import Bracket from '../components/Bracket';
 import BracketTree from '../components/BracketTree';
@@ -8,6 +8,7 @@ import TeamStats from '../components/TeamStats';
 import { Team, Match, UserProfile } from '../types';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import UserDropdown from '@/components/UserDropdown';
 import { showPushNotification } from '@/lib/notifications';
 import {
   generateRoundRobinMatches,
@@ -36,7 +37,6 @@ function TournamentPage({ user }: TournamentPageProps) {
   const [teamMembers, setTeamMembers] = useState<{ [key: string]: UserProfile[] }>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showBracketTree, setShowBracketTree] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [displayName, setDisplayName] = useState('User');
 
   useEffect(() => {
@@ -428,10 +428,7 @@ function TournamentPage({ user }: TournamentPageProps) {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
-  };
+
 
   const handleGenerateFinalMatch = async () => {
     if (!tournamentId || !isCreator) return;
@@ -531,84 +528,30 @@ function TournamentPage({ user }: TournamentPageProps) {
               <Trophy className="w-12 h-12 text-indigo-600" />
             </div>
             <div className="flex items-center gap-4 text-right">
-              <div className="flex items-center gap-2 text-gray-600">
-                <UserIcon className="w-4 h-4" />
-                <span>{displayName}</span>
-              </div>
-              <button
-                onClick={() => navigate('/profile')}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                My Profile
-              </button>
-              <button
-                onClick={handleSignOut}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                Sign Out
-              </button>
+              <UserDropdown displayName={displayName} />
             </div>
           </div>
 
           {/* Mobile Header */}
           <div className="md:hidden">
             <div className="flex items-center justify-between mb-4">
-              <Trophy className="w-10 h-10 text-indigo-600" />
               <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                onClick={() => navigate('/')}
                 className="p-2 text-gray-600 hover:text-gray-800"
               >
-                {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                <ArrowLeft className="w-6 h-6" />
               </button>
-            </div>
-
-            {/* Mobile Menu */}
-            {showMobileMenu && (
-              <div className="bg-white rounded-lg shadow-lg p-4 mb-4 space-y-3">
-                <div className="flex items-center gap-2 px-3 py-2 text-gray-700 border-b">
-                  <UserIcon className="w-4 h-4" />
-                  <span className="font-medium">{displayName}</span>
-                </div>
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={() => {
-                    navigate('/');
-                    setShowMobileMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded transition"
+                  onClick={() => navigate('/stats')}
+                  className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition"
+                  title="View Stats"
                 >
-                  ← Back to Tournaments
+                  <TrendingUp className="w-6 h-6" />
                 </button>
-                <button
-                  onClick={() => {
-                    navigate('/stats');
-                    setShowMobileMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-indigo-600 hover:bg-indigo-50 rounded transition"
-                >
-                  <TrendingUp className="w-4 h-4" />
-                  <span>View Stats</span>
-                </button>
-                <button
-                  onClick={() => {
-                    navigate('/profile');
-                    setShowMobileMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded transition"
-                >
-                  <UserIcon className="w-4 h-4" />
-                  <span>My Profile</span>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSignOut();
-                    setShowMobileMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded transition"
-                >
-                  Sign Out
-                </button>
+                <UserDropdown displayName={displayName} />
               </div>
-            )}
+            </div>
           </div>
           <h1 className="text-4xl font-bold text-gray-800 mb-2">{tournament.name}</h1>
           <div className="flex items-center justify-center gap-4 text-gray-600">

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Users, Medal, TrendingUp, ArrowLeft, User as UserIcon, Download, Filter } from 'lucide-react';
+import { Trophy, Users, Medal, TrendingUp, ArrowLeft, Download, Filter } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import UserDropdown from '@/components/UserDropdown';
 
 interface StatsPageProps {
     user: User;
@@ -513,21 +514,18 @@ function StatsPage({ user }: StatsPageProps) {
                             className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition"
                         >
                             <ArrowLeft className="w-5 h-5" />
-                            <span>Back to Stats</span>
+                            <span className="text-sm sm:text-base">Back to Stats</span>
                         </button>
 
-                        <div className="flex items-center gap-2 text-gray-600">
-                            <UserIcon className="w-4 h-4" />
-                            <span>{displayName}</span>
-                        </div>
+                        <UserDropdown displayName={displayName} />
                     </div>
 
                     <div className="text-center">
-                        <div className="flex items-center justify-center gap-3 mb-2">
-                            <TrendingUp className="w-10 h-10 text-indigo-600" />
-                            <h1 className="text-4xl font-bold text-gray-800">Overview Statistics</h1>
+                        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
+                            <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600" />
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800">Overview Statistics</h1>
                         </div>
-                        <p className="text-gray-600">Complete performance across all matches and tournaments</p>
+                        <p className="text-sm sm:text-base text-gray-600 px-4">Complete performance across all matches and tournaments</p>
                     </div>
 
                     {/* Date Filter */}

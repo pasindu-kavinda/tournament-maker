@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, TrendingUp, ArrowLeft, User as UserIcon, Target, Award } from 'lucide-react';
+import { Trophy, TrendingUp, ArrowLeft, Target, Award } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-
+import UserDropdown from '@/components/UserDropdown';
 interface StatsLandingPageProps {
     user: User;
 }
@@ -39,10 +39,7 @@ function StatsLandingPage({ user }: StatsLandingPageProps) {
                             <span>Back to Home</span>
                         </button>
 
-                        <div className="flex items-center gap-2 text-gray-600">
-                            <UserIcon className="w-4 h-4" />
-                            <span>{displayName}</span>
-                        </div>
+                        <UserDropdown displayName={displayName} />
                     </div>
 
                     <div className="text-center">
