@@ -260,20 +260,42 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
 
         const tournamentTeamsResults = await Promise.all(tournamentTeamsPromises);
 
+        // Fetch finals matches for all tournaments to determine accurate placements
+        const finalsMatchesPromises = completedTournaments.map(team =>
+            supabase
+                .from('matches')
+                .select('team1_id, team2_id, winner_id')
+                .eq('tournament_id', team.tournament_id)
+                .eq('round', 'final')
+                .eq('is_completed', true)
+                .single()
+        );
+
+        const finalsMatchesResults = await Promise.all(finalsMatchesPromises);
+
         // Process placements
         completedTournaments.forEach((team, index) => {
             const tournament = Array.isArray(team.tournaments) ? team.tournaments[0] : team.tournaments;
             const { data: allTeams } = tournamentTeamsResults[index];
+            const { data: finalMatch } = finalsMatchesResults[index];
 
             if (allTeams) {
-                // Sort teams properly
-                const sortedTeams = allTeams.sort((a: any, b: any) => {
-                    if (b.wins !== a.wins) return b.wins - a.wins;
-                    if (b.lead_points !== a.lead_points) return b.lead_points - a.lead_points;
-                    return b.points - a.points;
-                });
+                let placement: number;
 
-                const placement = sortedTeams.findIndex(t => t.id === team.id) + 1;
+                // Check if this team was in the finals
+                if (finalMatch && (finalMatch.team1_id === team.id || finalMatch.team2_id === team.id)) {
+                    // Team was in finals - determine 1st or 2nd place based on winner
+                    placement = finalMatch.winner_id === team.id ? 1 : 2;
+                } else {
+                    // Team didn't reach finals - calculate placement based on wins/points
+                    const sortedTeams = allTeams.sort((a: any, b: any) => {
+                        if (b.wins !== a.wins) return b.wins - a.wins;
+                        if (b.lead_points !== a.lead_points) return b.lead_points - a.lead_points;
+                        return b.points - a.points;
+                    });
+
+                    placement = sortedTeams.findIndex(t => t.id === team.id) + 1;
+                }
 
                 tournamentHistory.push({
                     tournamentId: tournament.id,
@@ -281,7 +303,7 @@ function PlayerProfilePage({ user }: PlayerProfilePageProps) {
                     venue: tournament.venue,
                     teamName: team.name,
                     placement,
-                    totalTeams: sortedTeams.length,
+                    totalTeams: allTeams.length,
                     completedAt: tournament.created_at
                 });
             }
