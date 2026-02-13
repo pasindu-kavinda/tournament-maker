@@ -49,6 +49,21 @@ function StatsPage({ user }: StatsPageProps) {
     const [playerStatsLoaded, setPlayerStatsLoaded] = useState(false);
     const [duoStatsLoaded, setDuoStatsLoaded] = useState(false);
     const [teamStatsLoaded, setTeamStatsLoaded] = useState(false);
+    const [displayName, setDisplayName] = useState('User');
+
+    useEffect(() => {
+        loadUserName();
+    }, []);
+
+    const loadUserName = async () => {
+        const { data } = await supabase
+            .from('users')
+            .select('full_name')
+            .eq('id', user.id)
+            .single();
+
+        if (data) setDisplayName(data.full_name || 'User');
+    };
 
     // CSV Export function
     const exportToCSV = (data: any[], filename: string, headers: string[]) => {
@@ -482,8 +497,6 @@ function StatsPage({ user }: StatsPageProps) {
         setTeamNameStats(teamsArray);
     };
 
-    const displayName = user.user_metadata?.full_name || 'User';
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100">
             <div className="container mx-auto px-4 py-8">
@@ -517,8 +530,8 @@ function StatsPage({ user }: StatsPageProps) {
                         <button
                             onClick={() => setDateFilter('all')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'all'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 }`}
                         >
                             All Time
@@ -526,8 +539,8 @@ function StatsPage({ user }: StatsPageProps) {
                         <button
                             onClick={() => setDateFilter('thisYear')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'thisYear'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 }`}
                         >
                             This Year
@@ -535,8 +548,8 @@ function StatsPage({ user }: StatsPageProps) {
                         <button
                             onClick={() => setDateFilter('lastYear')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'lastYear'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 }`}
                         >
                             Last Year
@@ -544,8 +557,8 @@ function StatsPage({ user }: StatsPageProps) {
                         <button
                             onClick={() => setDateFilter('thisMonth')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'thisMonth'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 }`}
                         >
                             This Month
@@ -553,8 +566,8 @@ function StatsPage({ user }: StatsPageProps) {
                         <button
                             onClick={() => setDateFilter('lastMonth')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'lastMonth'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 }`}
                         >
                             Last Month

@@ -33,9 +33,11 @@ function HomePage({ user }: HomePageProps) {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [toast, setToast] = useState<{ title: string; description: string; variant: 'success' | 'error' } | null>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [displayName, setDisplayName] = useState('User');
 
   useEffect(() => {
     loadTournaments();
+    loadUserName();
   }, []);
 
   const showToast = (title: string, description: string, variant: 'success' | 'error') => {
@@ -48,8 +50,18 @@ function HomePage({ user }: HomePageProps) {
       .from('tournaments')
       .select('*')
       .order('created_at', { ascending: false });
-    
+
     if (data) setTournaments(data);
+  };
+
+  const loadUserName = async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('full_name')
+      .eq('id', user.id)
+      .single();
+
+    if (data) setDisplayName(data.full_name || 'User');
   };
 
   const handleCreateTournament = async () => {
@@ -79,8 +91,6 @@ function HomePage({ user }: HomePageProps) {
     await supabase.auth.signOut();
     navigate('/');
   };
-
-  const displayName = user.user_metadata?.full_name || 'User';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100">
@@ -268,13 +278,12 @@ function HomePage({ user }: HomePageProps) {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-medium">{tournament.name}</h3>
-                      <span className={`px-3 py-1 rounded-full text-sm ${
-                        tournament.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : tournament.status === 'in_progress'
+                      <span className={`px-3 py-1 rounded-full text-sm ${tournament.status === 'completed'
+                        ? 'bg-green-100 text-green-800'
+                        : tournament.status === 'in_progress'
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-gray-100 text-gray-800'
-                      }`}>
+                        }`}>
                         {tournament.status}
                       </span>
                     </div>
@@ -293,18 +302,15 @@ function HomePage({ user }: HomePageProps) {
         </div>
 
         {toast && (
-          <Toast className={`${
-            toast.variant === 'success' ? 'bg-green-50' : 'bg-red-50'
-          }`}>
+          <Toast className={`${toast.variant === 'success' ? 'bg-green-50' : 'bg-red-50'
+            }`}>
             <div className="grid gap-1">
-              <ToastTitle className={`${
-                toast.variant === 'success' ? 'text-green-900' : 'text-red-900'
-              }`}>
+              <ToastTitle className={`${toast.variant === 'success' ? 'text-green-900' : 'text-red-900'
+                }`}>
                 {toast.title}
               </ToastTitle>
-              <ToastDescription className={`${
-                toast.variant === 'success' ? 'text-green-700' : 'text-red-700'
-              }`}>
+              <ToastDescription className={`${toast.variant === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}>
                 {toast.description}
               </ToastDescription>
             </div>

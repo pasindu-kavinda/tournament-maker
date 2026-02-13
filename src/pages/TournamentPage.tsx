@@ -37,11 +37,13 @@ function TournamentPage({ user }: TournamentPageProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showBracketTree, setShowBracketTree] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [displayName, setDisplayName] = useState('User');
 
   useEffect(() => {
     if (tournamentId) {
       loadTournament();
     }
+    loadUserName();
   }, [tournamentId]);
 
   useEffect(() => {
@@ -54,19 +56,29 @@ function TournamentPage({ user }: TournamentPageProps) {
 
   const loadTeamMembers = async () => {
     const members: { [key: string]: UserProfile[] } = {};
-    
+
     for (const team of teams) {
       const { data: users } = await supabase
         .from('users')
         .select('*')
         .in('id', team.members);
-      
+
       if (users) {
         members[team.id] = users;
       }
     }
-    
+
     setTeamMembers(members);
+  };
+
+  const loadUserName = async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('full_name')
+      .eq('id', user.id)
+      .single();
+
+    if (data) setDisplayName(data.full_name || 'User');
   };
 
   const loadTournament = async () => {
@@ -88,7 +100,7 @@ function TournamentPage({ user }: TournamentPageProps) {
         .select('*')
         .eq('tournament_id', tournamentId)
         .order('created_at', { ascending: true });
-      
+
       if (teamsData) {
         // Transform database column names to camelCase
         const transformedTeams = teamsData.map(team => ({
@@ -161,7 +173,7 @@ function TournamentPage({ user }: TournamentPageProps) {
         matchesPlayed: newTeam.matches_played ?? 0
       };
       setTeams([...teams, transformedTeam]);
-      
+
       // Send push notification to all tournament members
       showPushNotification(
         'Team Added! 👥',
@@ -234,7 +246,7 @@ function TournamentPage({ user }: TournamentPageProps) {
 
   const updateTeamStats = async (updatedMatches: Match[]) => {
     const stats = calculateTeamStats(updatedMatches);
-    
+
     for (const team of stats) {
       await supabase
         .from('teams')
@@ -252,7 +264,7 @@ function TournamentPage({ user }: TournamentPageProps) {
       .select('*')
       .eq('tournament_id', tournamentId)
       .order('created_at', { ascending: true });
-    
+
     if (teamsData) {
       // Transform database column names to camelCase
       const transformedTeams = teamsData.map(team => ({
@@ -323,12 +335,12 @@ function TournamentPage({ user }: TournamentPageProps) {
       const updatedMatches = matches.map(m =>
         m.id === matchId
           ? {
-              ...m,
-              scores: scores,
-              isCompleted: true,
-              winner: winner?.id,
-              pointDifference
-            }
+            ...m,
+            scores: scores,
+            isCompleted: true,
+            winner: winner?.id,
+            pointDifference
+          }
           : m
       );
       setMatches(updatedMatches);
@@ -342,7 +354,7 @@ function TournamentPage({ user }: TournamentPageProps) {
           .from('teams')
           .select('*')
           .eq('tournament_id', tournamentId);
-        
+
         if (freshTeamsData) {
           // Transform database column names to camelCase
           const transformedTeams = freshTeamsData.map(team => ({
@@ -350,7 +362,7 @@ function TournamentPage({ user }: TournamentPageProps) {
             leadPoints: team.lead_points ?? 0,
             matchesPlayed: team.matches_played ?? 0
           }));
-          
+
           const topTeams = getTopTeams(transformedTeams, 2);
           const newFinalMatch = generateFinalMatch(topTeams);
 
@@ -364,12 +376,12 @@ function TournamentPage({ user }: TournamentPageProps) {
               round: 'final',
               is_completed: false
             })
-          .select(`
+            .select(`
             *,
             team1:teams!matches_team1_id_fkey(*),
             team2:teams!matches_team2_id_fkey(*)
           `)
-          .single();
+            .single();
 
           if (createdFinalMatch) {
             const formattedFinalMatch = {
@@ -387,7 +399,7 @@ function TournamentPage({ user }: TournamentPageProps) {
             // Send push notification to all tournament members
             const team1Name = createdFinalMatch.team1?.name || 'Team 1';
             const team2Name = createdFinalMatch.team2?.name || 'Team 2';
-            
+
             showPushNotification(
               'Finals Ready! 🏆',
               `${team1Name} vs ${team2Name} - The championship match is here!`,
@@ -432,7 +444,7 @@ function TournamentPage({ user }: TournamentPageProps) {
         .from('teams')
         .select('*')
         .eq('tournament_id', tournamentId);
-      
+
       if (freshTeamsData && freshTeamsData.length >= 2) {
         // Transform database column names to camelCase
         const transformedTeams = freshTeamsData.map(team => ({
@@ -440,7 +452,7 @@ function TournamentPage({ user }: TournamentPageProps) {
           leadPoints: team.lead_points ?? 0,
           matchesPlayed: team.matches_played ?? 0
         }));
-        
+
         const topTeams = getTopTeams(transformedTeams, 2);
         const newFinalMatch = generateFinalMatch(topTeams);
 
@@ -454,12 +466,12 @@ function TournamentPage({ user }: TournamentPageProps) {
             round: 'final',
             is_completed: false
           })
-        .select(`
+          .select(`
           *,
           team1:teams!matches_team1_id_fkey(*),
           team2:teams!matches_team2_id_fkey(*)
         `)
-        .single();
+          .single();
 
         if (createdFinalMatch) {
           const formattedFinalMatch = {
@@ -472,7 +484,7 @@ function TournamentPage({ user }: TournamentPageProps) {
             matchNumber: createdFinalMatch.match_number,
             round: createdFinalMatch.round
           };
-          
+
           setFinalMatch(formattedFinalMatch);
 
           showPushNotification(
@@ -493,7 +505,6 @@ function TournamentPage({ user }: TournamentPageProps) {
   if (!tournament) return null;
 
   const isCompleted = tournament.status === 'completed';
-  const displayName = user.user_metadata?.full_name || 'User';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100">
@@ -648,17 +659,17 @@ function TournamentPage({ user }: TournamentPageProps) {
         )}
 
         {isCompleted && showSummary && (
-          <FinalMatchCard 
-            finalMatch={finalMatch} 
-            finalTeam={finalTeam} 
-            matches={matches} 
+          <FinalMatchCard
+            finalMatch={finalMatch}
+            finalTeam={finalTeam}
+            matches={matches}
             teams={teams}
             tournament={tournament}
           />
         )}
-        
+
         {isCompleted && showBracketTree && (
-          <BracketTree 
+          <BracketTree
             matches={matches}
             finalMatch={finalMatch}
             teams={teams}
@@ -696,11 +707,10 @@ function TournamentPage({ user }: TournamentPageProps) {
                   <button
                     onClick={handleGenerateMatches}
                     disabled={teams.length < 2 || isProcessing || matches.length > 0}
-                    className={`mt-6 w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition ${
-                      teams.length < 2 || matches.length > 0
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-indigo-600 hover:bg-indigo-700'
-                    }`}
+                    className={`mt-6 w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition ${teams.length < 2 || matches.length > 0
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-indigo-600 hover:bg-indigo-700'
+                      }`}
                   >
                     {isProcessing ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
@@ -712,8 +722,8 @@ function TournamentPage({ user }: TournamentPageProps) {
               )}
 
               {matches.length > 0 && (
-                <TeamStats 
-                  teams={teams} 
+                <TeamStats
+                  teams={teams}
                   tournamentStatus={tournament.status}
                   tournamentId={tournament.id}
                 />

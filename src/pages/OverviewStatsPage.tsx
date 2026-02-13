@@ -51,6 +51,22 @@ function StatsPage({ user }: StatsPageProps) {
     const [duoStatsLoaded, setDuoStatsLoaded] = useState(false);
     const [teamStatsLoaded, setTeamStatsLoaded] = useState(false);
 
+    const [displayName, setDisplayName] = useState('User');
+
+    useEffect(() => {
+        loadUserName();
+    }, []);
+
+    const loadUserName = async () => {
+        const { data } = await supabase
+            .from('users')
+            .select('full_name')
+            .eq('id', user.id)
+            .single();
+
+        if (data) setDisplayName(data.full_name || 'User');
+    };
+
     // CSV Export function
     const exportToCSV = (data: any[], filename: string, headers: string[]) => {
         const csvContent = [
@@ -486,8 +502,6 @@ function StatsPage({ user }: StatsPageProps) {
 
         setTeamNameStats(teamsArray);
     };
-
-    const displayName = user.user_metadata?.full_name || 'User';
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100">

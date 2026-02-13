@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, TrendingUp, ArrowLeft, User as UserIcon, Target, Award } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 interface StatsLandingPageProps {
     user: User;
@@ -8,7 +10,21 @@ interface StatsLandingPageProps {
 
 function StatsLandingPage({ user }: StatsLandingPageProps) {
     const navigate = useNavigate();
-    const displayName = user.user_metadata?.full_name || 'User';
+    const [displayName, setDisplayName] = useState('User');
+
+    useEffect(() => {
+        loadUserName();
+    }, []);
+
+    const loadUserName = async () => {
+        const { data } = await supabase
+            .from('users')
+            .select('full_name')
+            .eq('id', user.id)
+            .single();
+
+        if (data) setDisplayName(data.full_name || 'User');
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100">
