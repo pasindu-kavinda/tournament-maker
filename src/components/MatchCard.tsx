@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, Star, ArrowUp } from 'lucide-react';
-import { Match, Team, UserProfile } from '../types';
+import { Match, UserProfile } from '../types';
 import { supabase } from '@/lib/supabase';
 
 interface MatchCardProps {
   match: Match;
   onSubmitScores: (matchId: string, scores: [number, number]) => void;
   tournamentStatus?: string;
+  canEdit?: boolean;
 }
 
-function MatchCard({ match, onSubmitScores, tournamentStatus = 'pending' }: MatchCardProps) {
+function MatchCard({ match, onSubmitScores, tournamentStatus = 'pending', canEdit = false }: MatchCardProps) {
   const navigate = useNavigate();
   const [scores, setScores] = useState<[number | null, number | null]>([null, null]);
   const [teamMembers, setTeamMembers] = useState<{ [key: string]: UserProfile[] }>({});
@@ -31,7 +32,7 @@ function MatchCard({ match, onSubmitScores, tournamentStatus = 'pending' }: Matc
             table: 'matches',
             filter: `id=eq.${match.id}`
           },
-          async (payload) => {
+          async () => {
             // Fetch updated match data with team details
             const { data: updatedMatch } = await supabase
               .from('matches')
@@ -176,7 +177,7 @@ function MatchCard({ match, onSubmitScores, tournamentStatus = 'pending' }: Matc
                   <div className="font-semibold text-lg text-gray-800">
                     {realtimeMatch.scores[index]}
                   </div>
-                ) : (
+                ) : canEdit ? (
                   <input
                     type="number"
                     min="0"
@@ -186,13 +187,17 @@ function MatchCard({ match, onSubmitScores, tournamentStatus = 'pending' }: Matc
                     placeholder="Score"
                     disabled={!team || realtimeMatch.isCompleted}
                   />
+                ) : (
+                  <div className="w-16 text-center text-gray-400">
+                    -
+                  </div>
                 )}
               </div>
             </div>
           </div>
         ))}
 
-        {!realtimeMatch.isCompleted && (
+        {!realtimeMatch.isCompleted && canEdit && (
           <button
             onClick={handleSubmit}
             disabled={!isReadyToSubmit}

@@ -81,7 +81,7 @@ const HomePage = ({ user }: HomePageProps) => {
     if (error) {
       showToast('Error', error.message, 'error');
     } else if (tournament) {
-      navigate(`/ tournament / ${tournament.id} `);
+      navigate(`/tournament/${tournament.id}`);
     }
   };
 
@@ -180,17 +180,17 @@ const HomePage = ({ user }: HomePageProps) => {
                 {tournaments.map(tournament => (
                   <div
                     key={tournament.id}
-                    onClick={() => navigate(`/ tournament / ${tournament.id} `)}
+                    onClick={() => navigate(`/tournament/${tournament.id}`)}
                     className="p-4 border border-gray-200 rounded-lg hover:border-indigo-500 cursor-pointer transition-colors"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-medium">{tournament.name}</h3>
-                      <span className={`px - 3 py - 1 rounded - full text - sm ${tournament.status === 'completed'
+                      <span className={`px-3 py-1 rounded-full text-sm ${tournament.status === 'completed'
                         ? 'bg-green-100 text-green-800'
                         : tournament.status === 'in_progress'
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-gray-100 text-gray-800'
-                        } `}>
+                        }`}>
                         {tournament.status}
                       </span>
                     </div>

@@ -10,6 +10,7 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import UserDropdown from '@/components/UserDropdown';
 import { showPushNotification } from '@/lib/notifications';
+import { useAdmin } from '@/contexts/AdminContext';
 import {
   generateRoundRobinMatches,
   calculateTeamStats,
@@ -26,6 +27,7 @@ interface TournamentPageProps {
 function TournamentPage({ user }: TournamentPageProps) {
   const { id: tournamentId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
   const [tournament, setTournament] = useState<any>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -38,6 +40,8 @@ function TournamentPage({ user }: TournamentPageProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showBracketTree, setShowBracketTree] = useState(false);
   const [displayName, setDisplayName] = useState('User');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (tournamentId) {
@@ -84,13 +88,24 @@ function TournamentPage({ user }: TournamentPageProps) {
   const loadTournament = async () => {
     if (!tournamentId) return;
 
-    const { data: tournamentData } = await supabase
-      .from('tournaments')
-      .select('*')
-      .eq('id', tournamentId)
-      .single();
+    try {
+      setLoading(true);
+      setLoadError(null);
 
-    if (tournamentData) {
+      const { data: tournamentData, error: tournamentError } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('id', tournamentId)
+        .single();
+
+      if (tournamentError) {
+        console.error('Error loading tournament:', tournamentError);
+        setLoadError(`Failed to load tournament: ${tournamentError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      if (tournamentData) {
       setTournament(tournamentData);
       setIsCreator(tournamentData.created_by === user.id);
 
@@ -145,11 +160,17 @@ function TournamentPage({ user }: TournamentPageProps) {
           }
         }
       }
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading tournament:', error);
+      setLoadError('An unexpected error occurred while loading the tournament.');
+      setLoading(false);
     }
   };
 
   const handleAddTeam = async (team: Team) => {
-    if (!tournamentId || !isCreator) return;
+    if (!tournamentId || (!isCreator && !isAdmin)) return;
 
     const { data: newTeam } = await supabase
       .from('teams')
@@ -184,7 +205,7 @@ function TournamentPage({ user }: TournamentPageProps) {
   };
 
   const handleRemoveTeam = async (id: string) => {
-    if (!isCreator) return;
+    if (!isCreator && !isAdmin) return;
     await supabase.from('teams').delete().eq('id', id);
     setTeams(teams.filter(team => team.id !== id));
     setMatches([]);
@@ -192,7 +213,7 @@ function TournamentPage({ user }: TournamentPageProps) {
   };
 
   const handleGenerateMatches = async () => {
-    if (!tournamentId || !isCreator) return;
+    if (!tournamentId || (!isCreator && !isAdmin)) return;
 
     setIsProcessing(true);
     const generatedMatches = generateRoundRobinMatches(teams);
@@ -278,7 +299,8 @@ function TournamentPage({ user }: TournamentPageProps) {
 
   const handleSubmitScores = async (matchId: string, scores: [number, number]) => {
     if (!tournamentId) return;
-
+    
+    // Allow any logged-in user to submit scores (collaborative scoring)
     const match = matches.find(m => m.id === matchId) || finalMatch;
     if (!match) return;
 
@@ -414,7 +436,7 @@ function TournamentPage({ user }: TournamentPageProps) {
   };
 
   const handleDeleteTournament = async () => {
-    if (!tournamentId || !isCreator) return;
+    if (!tournamentId || (!isCreator && !isAdmin)) return;
 
     try {
       await supabase
@@ -431,7 +453,7 @@ function TournamentPage({ user }: TournamentPageProps) {
 
 
   const handleGenerateFinalMatch = async () => {
-    if (!tournamentId || !isCreator) return;
+    if (!tournamentId || (!isCreator && !isAdmin)) return;
 
     try {
       setIsProcessing(true);
@@ -499,6 +521,38 @@ function TournamentPage({ user }: TournamentPageProps) {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-600 border-t-transparent mx-auto mb-4" />
+          <p className="text-gray-700 font-medium">Loading tournament...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100">
+        <div className="text-center max-w-md bg-white rounded-xl shadow-lg p-8">
+          <Trophy className="w-16 h-16 mx-auto text-red-400 mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Error Loading Tournament</h2>
+          <p className="text-gray-600 mb-4">{loadError}</p>
+          <button
+            onClick={() => {
+              setLoadError(null);
+              loadTournament();
+            }}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!tournament) return null;
 
   const isCompleted = tournament.status === 'completed';
@@ -561,7 +615,7 @@ function TournamentPage({ user }: TournamentPageProps) {
             </div>
             <span>•</span>
             <span className="font-medium">Status: {tournament.status}</span>
-            {isCreator && (
+            {(isCreator || isAdmin) && (
               <>
                 <span>•</span>
                 <button
@@ -622,7 +676,7 @@ function TournamentPage({ user }: TournamentPageProps) {
         <div className={isCompleted && (showSummary || showBracketTree) ? 'hidden' : ''}>
           <div className="grid lg:grid-cols-[350px,1fr] gap-8">
             <div className="space-y-6">
-              {matches.length === 0 && isCreator && (
+              {matches.length === 0 && (isCreator || isAdmin) && (
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <div className="flex items-center gap-2 mb-6">
                     <Users className="w-5 h-5 text-indigo-600" />
@@ -674,7 +728,7 @@ function TournamentPage({ user }: TournamentPageProps) {
             </div>
 
             <div className="space-y-8">
-              {matches.length > 0 && !finalMatch && matches.every(m => m.isCompleted) && isCreator && (
+              {matches.length > 0 && !finalMatch && matches.every(m => m.isCompleted) && (isCreator || isAdmin) && (
                 <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl shadow-lg p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <Trophy className="w-8 h-8 text-amber-600" />
@@ -713,6 +767,7 @@ function TournamentPage({ user }: TournamentPageProps) {
                   tournamentStatus: tournament.status
                 } : null}
                 onSubmitScores={handleSubmitScores}
+                canEdit={true}
               />
             </div>
           </div>

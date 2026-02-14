@@ -1,4 +1,3 @@
-import React from 'react';
 import { Match } from '../types';
 import MatchCard from './MatchCard';
 
@@ -6,9 +5,10 @@ interface BracketProps {
   matches: Match[];
   finalMatch: Match | null;
   onSubmitScores: (matchId: string, scores: [number, number]) => void;
+  canEdit?: boolean;
 }
 
-function Bracket({ matches, finalMatch, onSubmitScores }: BracketProps) {
+function Bracket({ matches, finalMatch, onSubmitScores, canEdit = false }: BracketProps) {
   const regularMatches = matches
     .filter(m => m.round === 'regular')
     .sort((a, b) => a.matchNumber - b.matchNumber);
@@ -22,6 +22,7 @@ function Bracket({ matches, finalMatch, onSubmitScores }: BracketProps) {
             match={finalMatch}
             onSubmitScores={onSubmitScores}
             tournamentStatus={finalMatch.tournamentStatus}
+            canEdit={canEdit}
           />
         </div>
       )}
@@ -36,6 +37,7 @@ function Bracket({ matches, finalMatch, onSubmitScores }: BracketProps) {
                 match={match}
                 onSubmitScores={onSubmitScores}
                 tournamentStatus={match.tournamentStatus}
+                canEdit={canEdit}
               />
             ))}
           </div>
