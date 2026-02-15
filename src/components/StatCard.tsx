@@ -42,11 +42,11 @@ function StatCard({ rank, title, subtitle, stats, onClick }: StatCardProps) {
 
     return (
         <div
-            className={`p-4 rounded-lg border-2 ${styles.card} ${onClick ? 'cursor-pointer hover:shadow-md transition' : ''}`}
+            className={`p-3 xs:p-4 rounded-lg border-2 ${styles.card} ${onClick ? 'cursor-pointer hover:shadow-md transition' : ''}`}
             onClick={onClick}
         >
-            <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-3 xs:gap-4">
+                <div className="flex items-center gap-2 xs:gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${styles.badge}`}>
                         {rank}
                     </div>
@@ -62,7 +62,7 @@ function StatCard({ rank, title, subtitle, stats, onClick }: StatCardProps) {
                     </div>
                 </div>
 
-                <div className="flex gap-6 text-center justify-around xs:justify-start">
+                <div className="flex gap-4 xs:gap-6 text-center justify-around xs:justify-start">
                     {stats.map((stat, index) => (
                         <div key={index}>
                             <div className={`text-2xl font-bold ${stat.color || 'text-gray-700'}`}>

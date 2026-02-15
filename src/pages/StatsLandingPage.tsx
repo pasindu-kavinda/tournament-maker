@@ -4,6 +4,7 @@ import { Trophy, TrendingUp, ArrowLeft, Target, Award } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import UserDropdown from '@/components/UserDropdown';
+import StatsCategoryCard from '@/components/StatsCategoryCard';
 interface StatsLandingPageProps {
     user: User;
 }
@@ -43,134 +44,66 @@ function StatsLandingPage({ user }: StatsLandingPageProps) {
                     </div>
 
                     <div className="text-center">
-                        <div className="flex items-center justify-center gap-3 mb-2">
-                            <TrendingUp className="w-10 h-10 text-indigo-600" />
-                            <h1 className="text-4xl font-bold text-gray-800">Tournament Statistics</h1>
+                        <div className="flex items-center justify-center gap-2 xs:gap-3 mb-2">
+                            <TrendingUp className="w-8 h-8 xs:w-10 xs:h-10 text-indigo-600" />
+                            <h1 className="text-2xl xs:text-3xl sm:text-4xl font-bold text-gray-800">Tournament Statistics</h1>
                         </div>
-                        <p className="text-gray-600">Choose a statistics category to explore</p>
+                        <p className="text-sm xs:text-base text-gray-600">Choose a statistics category to explore</p>
                     </div>
                 </header>
 
                 {/* Stats Category Cards */}
-                <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-6">
-                    {/* Finals Stats Card */}
-                    <button
+                <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-4 xs:gap-6">
+                    <StatsCategoryCard
+                        icon={Trophy}
+                        title="Finals Stats"
+                        subtitle="Championship Performance"
+                        description="View player, duo, and team performance in tournament finals. See who dominates when it matters most."
+                        badges={[
+                            { icon: Award, label: 'Finals Only', color: 'primary' },
+                            { icon: Target, label: 'Championship Matches', color: 'secondary' }
+                        ]}
+                        buttonText="View Finals Stats"
+                        gradientFrom="from-yellow-400"
+                        gradientTo="to-orange-500"
                         onClick={() => navigate('/stats/finals')}
-                        className="group bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105 text-left"
-                    >
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                <Trophy className="w-8 h-8 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-gray-800 group-hover:text-indigo-600 transition">
-                                    Finals Stats
-                                </h2>
-                                <p className="text-sm text-gray-500">Championship Performance</p>
-                            </div>
-                        </div>
+                    />
 
-                        <p className="text-gray-600 mb-4">
-                            View player, duo, and team performance in tournament finals. See who dominates when it matters most.
-                        </p>
-
-                        <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1 text-indigo-600">
-                                <Award className="w-4 h-4" />
-                                <span className="font-medium">Finals Only</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-gray-500">
-                                <Target className="w-4 h-4" />
-                                <span>Championship Matches</span>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 flex items-center gap-2 text-indigo-600 font-medium group-hover:gap-3 transition-all">
-                            <span>View Finals Stats</span>
-                            <ArrowLeft className="w-4 h-4 rotate-180" />
-                        </div>
-                    </button>
-
-                    {/* Overview Stats Card */}
-                    <button
+                    <StatsCategoryCard
+                        icon={TrendingUp}
+                        title="Overview Stats"
+                        subtitle="Complete Performance"
+                        description="Comprehensive statistics across all matches and tournaments. Track overall performance and rankings."
+                        badges={[
+                            { icon: Award, label: 'All Matches', color: 'primary' },
+                            { icon: Target, label: 'Complete History', color: 'secondary' }
+                        ]}
+                        buttonText="View Overview Stats"
+                        gradientFrom="from-indigo-500"
+                        gradientTo="to-purple-600"
                         onClick={() => navigate('/stats/overview')}
-                        className="group bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105 text-left"
-                    >
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                <TrendingUp className="w-8 h-8 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-gray-800 group-hover:text-indigo-600 transition">
-                                    Overview Stats
-                                </h2>
-                                <p className="text-sm text-gray-500">Complete Performance</p>
-                            </div>
-                        </div>
+                    />
 
-                        <p className="text-gray-600 mb-4">
-                            Comprehensive statistics across all matches and tournaments. Track overall performance and rankings.
-                        </p>
-
-                        <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1 text-indigo-600">
-                                <Award className="w-4 h-4" />
-                                <span className="font-medium">All Matches</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-gray-500">
-                                <Target className="w-4 h-4" />
-                                <span>Complete History</span>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 flex items-center gap-2 text-indigo-600 font-medium group-hover:gap-3 transition-all">
-                            <span>View Overview Stats</span>
-                            <ArrowLeft className="w-4 h-4 rotate-180" />
-                        </div>
-                    </button>
-
-                    {/* Achievements & Records Card */}
-                    <button
+                    <StatsCategoryCard
+                        icon={Award}
+                        title="Achievements & Records"
+                        subtitle="Player Milestones & Leaderboards"
+                        description="View achievement leaderboards and personal records. See who has the most achievements, longest win streaks, and perfect tournaments."
+                        badges={[
+                            { icon: Trophy, label: '23 Achievements', color: 'primary' },
+                            { icon: Target, label: '4 Record Categories', color: 'secondary' }
+                        ]}
+                        buttonText="View Achievements & Records"
+                        gradientFrom="from-purple-500"
+                        gradientTo="to-pink-600"
                         onClick={() => navigate('/stats/achievements')}
-                        className="group bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105 text-left md:col-span-2"
-                    >
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                <Award className="w-8 h-8 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-gray-800 group-hover:text-indigo-600 transition">
-                                    Achievements & Records
-                                </h2>
-                                <p className="text-sm text-gray-500">Player Milestones & Leaderboards</p>
-                            </div>
-                        </div>
-
-                        <p className="text-gray-600 mb-4">
-                            View achievement leaderboards and personal records. See who has the most achievements, longest win streaks, and perfect tournaments.
-                        </p>
-
-                        <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1 text-indigo-600">
-                                <Trophy className="w-4 h-4" />
-                                <span className="font-medium">23 Achievements</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-gray-500">
-                                <Target className="w-4 h-4" />
-                                <span>4 Record Categories</span>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 flex items-center gap-2 text-indigo-600 font-medium group-hover:gap-3 transition-all">
-                            <span>View Achievements & Records</span>
-                            <ArrowLeft className="w-4 h-4 rotate-180" />
-                        </div>
-                    </button>
+                        colSpan="double"
+                    />
                 </div>
 
                 {/* Info Section */}
-                <div className="max-w-5xl mx-auto mt-8 bg-white/50 backdrop-blur rounded-xl p-6">
-                    <div className="grid md:grid-cols-2 gap-6 text-sm text-gray-600">
+                <div className="max-w-5xl mx-auto mt-6 xs:mt-8 bg-white/50 backdrop-blur rounded-xl p-4 xs:p-6">
+                    <div className="grid md:grid-cols-2 gap-4 xs:gap-6 text-xs xs:text-sm text-gray-600">
                         <div>
                             <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                                 <Trophy className="w-4 h-4 text-yellow-500" />
