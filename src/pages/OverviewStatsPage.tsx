@@ -580,7 +580,7 @@ function StatsPage({ user }: StatsPageProps) {
                 </header>
 
                 {/* Tabs */}
-                <div className="flex gap-4 mb-8 justify-center">
+                <div className="flex max-sm:flex-col gap-4 mb-8 justify-center">
                     <button
                         onClick={() => setActiveTab('players')}
                         className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${activeTab === 'players'
@@ -641,7 +641,7 @@ function StatsPage({ user }: StatsPageProps) {
                             ) : playerStats.length === 0 ? (
                                 <div className="text-center py-12 text-gray-500">
                                     <Trophy className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                                    <p>No finals data available yet</p>
+                                    <p>No data available yet</p>
                                 </div>
                             ) : (
                                 <div className="space-y-3">

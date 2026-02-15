@@ -574,7 +574,7 @@ function StatsPage({ user }: StatsPageProps) {
                 </header>
 
                 {/* Tabs */}
-                <div className="flex gap-4 mb-8 justify-center">
+                <div className="flex max-sm:flex-col gap-4 mb-8 justify-center">
                     <button
                         onClick={() => setActiveTab('players')}
                         className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${activeTab === 'players'
