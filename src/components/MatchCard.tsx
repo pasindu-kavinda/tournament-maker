@@ -106,8 +106,8 @@ function MatchCard({ match, onSubmitScores, tournamentStatus = 'pending', canEdi
   const isReadyToSubmit = scores[0] !== null && scores[1] !== null && !realtimeMatch.isCompleted;
 
   return (
-    <div className={`w-80 bg-white border ${realtimeMatch.round === 'final' ? 'border-indigo-200 ring-1 ring-indigo-500' : 'border-gray-200'} rounded-lg shadow-sm`}>
-      <div className="p-4">
+    <div className={`w-full max-w-[320px] mx-auto bg-white border ${realtimeMatch.round === 'final' ? 'border-indigo-200 ring-1 ring-indigo-500' : 'border-gray-200'} rounded-lg shadow-sm`}>
+      <div className="p-3 xs:p-4">
         <div className="flex justify-between items-center mb-3">
           <div className="text-sm text-gray-500">
             {realtimeMatch.round === 'final' ? (

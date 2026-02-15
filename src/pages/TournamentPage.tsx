@@ -607,23 +607,23 @@ function TournamentPage({ user }: TournamentPageProps) {
               </div>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">{tournament.name}</h1>
-          <div className="flex items-center justify-center gap-4 text-gray-600">
+          <h1 className="text-2xl xs:text-3xl sm:text-4xl font-bold text-gray-800 mb-3">{tournament.name}</h1>
+          <div className="flex flex-wrap items-center justify-center gap-2 xs:gap-4 text-sm xs:text-base text-gray-600">
             <div className="flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
+              <MapPin className="w-4 h-4 xs:w-5 xs:h-5" />
               <span>{tournament.venue}</span>
             </div>
-            <span>•</span>
+            <span className="hidden xs:inline">•</span>
             <span className="font-medium">Status: {tournament.status}</span>
             {(isCreator || isAdmin) && (
               <>
-                <span>•</span>
+                <span className="hidden xs:inline">•</span>
                 <button
                   onClick={() => setShowDeleteDialog(true)}
-                  className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                  className="flex items-center gap-1 xs:gap-2 text-red-600 hover:text-red-700"
                 >
-                  <Trash2 className="w-5 h-5" />
-                  <span>Delete Tournament</span>
+                  <Trash2 className="w-4 h-4 xs:w-5 xs:h-5" />
+                  <span className="text-sm xs:text-base">Delete</span>
                 </button>
               </>
             )}
@@ -631,26 +631,26 @@ function TournamentPage({ user }: TournamentPageProps) {
         </header>
 
         {isCompleted && (
-          <div className="flex justify-center gap-4 mb-8">
+          <div className="flex flex-col xs:flex-row justify-center gap-3 xs:gap-4 mb-6 xs:mb-8">
             <button
               onClick={() => {
                 setShowSummary(!showSummary);
                 if (!showSummary) setShowBracketTree(false);
               }}
-              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="flex items-center justify-center gap-2 px-4 xs:px-6 py-2.5 xs:py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm xs:text-base"
             >
-              <FileText className="w-5 h-5" />
-              {showSummary ? 'Show Matches' : 'Show Tournament Summary'}
+              <FileText className="w-4 h-4 xs:w-5 xs:h-5" />
+              <span>{showSummary ? 'Show Matches' : 'Show Summary'}</span>
             </button>
             <button
               onClick={() => {
                 setShowBracketTree(!showBracketTree);
                 if (!showBracketTree) setShowSummary(false);
               }}
-              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              className="flex items-center justify-center gap-2 px-4 xs:px-6 py-2.5 xs:py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm xs:text-base"
             >
-              <Network className="w-5 h-5" />
-              {showBracketTree ? 'Hide Bracket Tree' : 'Show Bracket Tree'}
+              <Network className="w-4 h-4 xs:w-5 xs:h-5" />
+              <span>{showBracketTree ? 'Hide Tree' : 'Show Tree'}</span>
             </button>
           </div>
         )}
@@ -674,28 +674,28 @@ function TournamentPage({ user }: TournamentPageProps) {
         )}
 
         <div className={isCompleted && (showSummary || showBracketTree) ? 'hidden' : ''}>
-          <div className="grid lg:grid-cols-[350px,1fr] gap-8">
-            <div className="space-y-6">
+          <div className="grid lg:grid-cols-[350px,1fr] gap-4 xs:gap-6 lg:gap-8">
+            <div className="space-y-4 xs:space-y-6">
               {matches.length === 0 && (isCreator || isAdmin) && (
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                  <div className="flex items-center gap-2 mb-6">
+                <div className="bg-white rounded-xl shadow-lg p-4 xs:p-6">
+                  <div className="flex items-center gap-2 mb-4 xs:mb-6">
                     <Users className="w-5 h-5 text-indigo-600" />
-                    <h2 className="text-xl font-semibold">Teams</h2>
+                    <h2 className="text-lg xs:text-xl font-semibold">Teams</h2>
                   </div>
 
                   <TeamInput onAddTeam={handleAddTeam} />
 
-                  <div className="mt-6 space-y-3">
+                  <div className="mt-4 xs:mt-6 space-y-2 xs:space-y-3">
                     {teams.map(team => (
-                      <div key={team.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <div>
-                          <h3 className="font-medium text-gray-800">{team.name}</h3>
-                          <p className="text-sm text-gray-500">
+                      <div key={team.id} className="flex items-center justify-between p-2.5 xs:p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="min-w-0 flex-1 pr-2">
+                          <h3 className="font-medium text-gray-800 text-sm xs:text-base truncate">{team.name}</h3>
+                          <p className="text-xs xs:text-sm text-gray-500 truncate">
                             {teamMembers[team.id]?.map(user => user.full_name).join(', ')}
                           </p>
                         </div>
-                        <button onClick={() => handleRemoveTeam(team.id)} className="text-red-500 hover:text-red-700 p-1">
-                          <Target className="w-5 h-5" />
+                        <button onClick={() => handleRemoveTeam(team.id)} className="text-red-500 hover:text-red-700 p-1 flex-shrink-0">
+                          <Target className="w-4 h-4 xs:w-5 xs:h-5" />
                         </button>
                       </div>
                     ))}
@@ -704,7 +704,7 @@ function TournamentPage({ user }: TournamentPageProps) {
                   <button
                     onClick={handleGenerateMatches}
                     disabled={teams.length < 2 || isProcessing || matches.length > 0}
-                    className={`mt-6 w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition ${teams.length < 2 || matches.length > 0
+                    className={`mt-4 xs:mt-6 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-white font-medium transition text-sm xs:text-base ${teams.length < 2 || matches.length > 0
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-indigo-600 hover:bg-indigo-700'
                       }`}
@@ -727,20 +727,20 @@ function TournamentPage({ user }: TournamentPageProps) {
               )}
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-4 xs:space-y-6 lg:space-y-8">
               {matches.length > 0 && !finalMatch && matches.every(m => m.isCompleted) && (isCreator || isAdmin) && (
-                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl shadow-lg p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Trophy className="w-8 h-8 text-amber-600" />
+                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl shadow-lg p-4 xs:p-6">
+                  <div className="flex items-center gap-2 xs:gap-3 mb-4">
+                    <Trophy className="w-6 h-6 xs:w-8 xs:h-8 text-amber-600 flex-shrink-0" />
                     <div>
-                      <h3 className="text-xl font-bold text-amber-900">All Matches Complete!</h3>
-                      <p className="text-amber-700 text-sm">Ready to generate the final match</p>
+                      <h3 className="text-lg xs:text-xl font-bold text-amber-900">All Matches Complete!</h3>
+                      <p className="text-amber-700 text-xs xs:text-sm">Ready to generate the final match</p>
                     </div>
                   </div>
                   <button
                     onClick={handleGenerateFinalMatch}
                     disabled={isProcessing}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-2 px-4 xs:px-6 py-2.5 xs:py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed text-sm xs:text-base"
                   >
                     {isProcessing ? (
                       <>

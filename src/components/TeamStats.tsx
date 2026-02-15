@@ -86,10 +86,10 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamSt
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex items-center gap-2 mb-6">
+      <div className="bg-white rounded-xl shadow-lg p-4 xs:p-6">
+        <div className="flex items-center gap-2 mb-4 xs:mb-6">
           <Trophy className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-xl font-semibold">Team Rankings</h2>
+          <h2 className="text-lg xs:text-xl font-semibold">Team Rankings</h2>
         </div>
         <div className="flex items-center justify-center p-8">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent"></div>
@@ -99,44 +99,44 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamSt
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex items-center gap-2 mb-6">
+    <div className="bg-white rounded-xl shadow-lg p-4 xs:p-6">
+      <div className="flex items-center gap-2 mb-4 xs:mb-6">
         <Trophy className="w-5 h-5 text-indigo-600" />
-        <h2 className="text-xl font-semibold">Team Rankings</h2>
+        <h2 className="text-lg xs:text-xl font-semibold">Team Rankings</h2>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3 xs:space-y-4">
         {sortedTeams.map((team, index) => (
           <div 
             key={team.id}
-            className={`p-4 rounded-lg border ${
+            className={`p-3 xs:p-4 rounded-lg border ${
               index < 2 ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-gray-50'
             }`}
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                {index < 2 && <Award className="w-5 h-5 text-indigo-600" />}
-                <h3 className="font-medium text-gray-800">{team.name}</h3>
+            <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                {index < 2 && <Award className="w-4 h-4 xs:w-5 xs:h-5 text-indigo-600 flex-shrink-0" />}
+                <h3 className="font-medium text-gray-800 text-sm xs:text-base truncate">{team.name}</h3>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 xs:gap-4 text-xs xs:text-sm flex-wrap">
                 <div className="flex items-center gap-1">
-                  <Target className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-600">
+                  <Target className="w-3 h-3 xs:w-4 xs:h-4 text-gray-500" />
+                  <span className="font-medium text-gray-600">
                     {team.wins} wins
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <TrendingUp className="w-4 h-4 text-indigo-500" />
-                  <span className="text-sm font-medium text-indigo-600">
+                  <TrendingUp className="w-3 h-3 xs:w-4 xs:h-4 text-indigo-500" />
+                  <span className="font-medium text-indigo-600">
                     +{team.leadPoints}
                   </span>
                 </div>
-                <div className="text-sm text-gray-500">
+                <div className="text-gray-500">
                   {team.points} pts
                 </div>
               </div>
             </div>
-            <div className="text-sm text-gray-500 flex flex-wrap gap-1">
+            <div className="text-xs xs:text-sm text-gray-500 flex flex-wrap gap-1">
               <span>Players:</span>
               {teamMembers[team.id]?.map((user, idx) => (
                 <React.Fragment key={user.id}>
