@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Trophy, Users, Medal, TrendingUp, ArrowLeft, Download, Filter } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import UserDropdown from '@/components/UserDropdown';
+import StatCard from '@/components/StatCard';
 
 interface StatsPageProps {
     user: User;
@@ -646,61 +646,27 @@ function StatsPage({ user }: StatsPageProps) {
                             ) : (
                                 <div className="space-y-3">
                                     {playerStats.map((player, index) => (
-                                        <div
+                                        <StatCard
                                             key={player.userId}
-                                            className={`p-4 rounded-lg border-2 ${index === 0
-                                                ? 'bg-yellow-50 border-yellow-400'
-                                                : index === 1
-                                                    ? 'bg-gray-50 border-gray-400'
-                                                    : index === 2
-                                                        ? 'bg-orange-50 border-orange-400'
-                                                        : 'bg-white border-gray-200'
-                                                }`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${index === 0
-                                                        ? 'bg-yellow-400 text-yellow-900'
-                                                        : index === 1
-                                                            ? 'bg-gray-400 text-gray-900'
-                                                            : index === 2
-                                                                ? 'bg-orange-400 text-orange-900'
-                                                                : 'bg-indigo-100 text-indigo-600'
-                                                        }`}>
-                                                        {index + 1}
-                                                    </div>
-                                                    <div>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                navigate(`/profile/${player.userId}`);
-                                                            }}
-                                                            className="font-semibold text-gray-800 hover:text-indigo-600 transition text-left"
-                                                        >
-                                                            {player.userName}
-                                                        </button>
-                                                        <div className="text-sm text-gray-500">
-                                                            {player.tournaments} tournament{player.tournaments !== 1 ? 's' : ''}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex gap-6 text-center">
-                                                    <div>
-                                                        <div className="text-2xl font-bold text-indigo-600">{player.totalWins}</div>
-                                                        <div className="text-xs text-gray-500">Wins</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-2xl font-bold text-gray-700">{player.totalMatches}</div>
-                                                        <div className="text-xs text-gray-500">Matches</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-2xl font-bold text-green-600">{player.winRate.toFixed(0)}%</div>
-                                                        <div className="text-xs text-gray-500">Win Rate</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                            rank={index + 1}
+                                            title={
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate(`/profile/${player.userId}`);
+                                                    }}
+                                                    className="hover:text-indigo-600 transition text-left"
+                                                >
+                                                    {player.userName}
+                                                </button>
+                                            }
+                                            subtitle={`${player.tournaments} tournament${player.tournaments !== 1 ? 's' : ''}`}
+                                            stats={[
+                                                { label: 'Wins', value: player.totalWins, color: 'text-indigo-600' },
+                                                { label: 'Matches', value: player.totalMatches, color: 'text-gray-700' },
+                                                { label: 'Win Rate', value: `${player.winRate.toFixed(0)}%`, color: 'text-green-600' }
+                                            ]}
+                                        />
                                     ))}
                                 </div>
                             )}
@@ -741,71 +707,39 @@ function StatsPage({ user }: StatsPageProps) {
                             ) : (
                                 <div className="space-y-3">
                                     {duoStats.map((duo, index) => (
-                                        <div
+                                        <StatCard
                                             key={`${duo.player1Id}_${duo.player2Id}`}
-                                            className={`p-4 rounded-lg border-2 ${index === 0
-                                                ? 'bg-yellow-50 border-yellow-400'
-                                                : index === 1
-                                                    ? 'bg-gray-50 border-gray-400'
-                                                    : index === 2
-                                                        ? 'bg-orange-50 border-orange-400'
-                                                        : 'bg-white border-gray-200'
-                                                }`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${index === 0
-                                                        ? 'bg-yellow-400 text-yellow-900'
-                                                        : index === 1
-                                                            ? 'bg-gray-400 text-gray-900'
-                                                            : index === 2
-                                                                ? 'bg-orange-400 text-orange-900'
-                                                                : 'bg-indigo-100 text-indigo-600'
-                                                        }`}>
-                                                        {index + 1}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-semibold text-gray-800">
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    navigate(`/profile/${duo.player1Id}`);
-                                                                }}
-                                                                className="hover:text-indigo-600 transition"
-                                                            >
-                                                                {duo.player1Name}
-                                                            </button>
-                                                            {' & '}
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    navigate(`/profile/${duo.player2Id}`);
-                                                                }}
-                                                                className="hover:text-indigo-600 transition"
-                                                            >
-                                                                {duo.player2Name}
-                                                            </button>
-                                                        </div>
-                                                        <div className="text-sm text-gray-500">Partnership</div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex gap-6 text-center">
-                                                    <div>
-                                                        <div className="text-2xl font-bold text-indigo-600">{duo.totalWins}</div>
-                                                        <div className="text-xs text-gray-500">Wins</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-2xl font-bold text-gray-700">{duo.totalMatches}</div>
-                                                        <div className="text-xs text-gray-500">Matches</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-2xl font-bold text-green-600">{duo.winRate.toFixed(0)}%</div>
-                                                        <div className="text-xs text-gray-500">Win Rate</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                            rank={index + 1}
+                                            title={
+                                                <>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/profile/${duo.player1Id}`);
+                                                        }}
+                                                        className="hover:text-indigo-600 transition"
+                                                    >
+                                                        {duo.player1Name}
+                                                    </button>
+                                                    {' & '}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/profile/${duo.player2Id}`);
+                                                        }}
+                                                        className="hover:text-indigo-600 transition"
+                                                    >
+                                                        {duo.player2Name}
+                                                    </button>
+                                                </>
+                                            }
+                                            subtitle="Partnership"
+                                            stats={[
+                                                { label: 'Wins', value: duo.totalWins, color: 'text-indigo-600' },
+                                                { label: 'Matches', value: duo.totalMatches, color: 'text-gray-700' },
+                                                { label: 'Win Rate', value: `${duo.winRate.toFixed(0)}%`, color: 'text-green-600' }
+                                            ]}
+                                        />
                                     ))}
                                 </div>
                             )}
@@ -846,53 +780,17 @@ function StatsPage({ user }: StatsPageProps) {
                             ) : (
                                 <div className="space-y-3">
                                     {teamNameStats.map((team, index) => (
-                                        <div
+                                        <StatCard
                                             key={team.teamName}
-                                            className={`p-4 rounded-lg border-2 ${index === 0
-                                                ? 'bg-yellow-50 border-yellow-400'
-                                                : index === 1
-                                                    ? 'bg-gray-50 border-gray-400'
-                                                    : index === 2
-                                                        ? 'bg-orange-50 border-orange-400'
-                                                        : 'bg-white border-gray-200'
-                                                }`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${index === 0
-                                                        ? 'bg-yellow-400 text-yellow-900'
-                                                        : index === 1
-                                                            ? 'bg-gray-400 text-gray-900'
-                                                            : index === 2
-                                                                ? 'bg-orange-400 text-orange-900'
-                                                                : 'bg-indigo-100 text-indigo-600'
-                                                        }`}>
-                                                        {index + 1}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-semibold text-gray-800">{team.teamName}</div>
-                                                        <div className="text-sm text-gray-500">
-                                                            {team.tournamentsPlayed} tournament{team.tournamentsPlayed !== 1 ? 's' : ''}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex gap-4 text-center">
-                                                    <div>
-                                                        <div className="text-2xl font-bold text-indigo-600">{team.finalsAppearances}</div>
-                                                        <div className="text-xs text-gray-500">Finals</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-2xl font-bold text-green-600">{team.totalWins}</div>
-                                                        <div className="text-xs text-gray-500">Total Wins</div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-2xl font-bold text-gray-700">{team.totalPoints}</div>
-                                                        <div className="text-xs text-gray-500">Points</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                            rank={index + 1}
+                                            title={team.teamName}
+                                            subtitle={`${team.tournamentsPlayed} tournament${team.tournamentsPlayed !== 1 ? 's' : ''}`}
+                                            stats={[
+                                                { label: 'Finals', value: team.finalsAppearances, color: 'text-indigo-600' },
+                                                { label: 'Total Wins', value: team.totalWins, color: 'text-green-600' },
+                                                { label: 'Points', value: team.totalPoints, color: 'text-gray-700' }
+                                            ]}
+                                        />
                                     ))}
                                 </div>
                             )}
