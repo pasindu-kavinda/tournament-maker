@@ -13,10 +13,13 @@ interface StatsPageProps {
 interface PlayerStats {
     userId: string;
     userName: string;
-    finalsAppearances: number;
-    finalsWins: number;
+    titles: number;
+    runnerUps: number;
     winRate: number;
-    tournaments: number;
+    finalsAppearances: number;
+    totalPoints: number;
+    tournamentsPlayed: number;
+    finalsRate: number;
 }
 
 interface DuoStats {
@@ -24,33 +27,24 @@ interface DuoStats {
     player2Id: string;
     player1Name: string;
     player2Name: string;
-    finalsAppearances: number;
-    finalsWins: number;
+    titles: number;
+    runnerUps: number;
     winRate: number;
-}
-
-interface TeamNameStats {
-    teamName: string;
-    totalWins: number;
     finalsAppearances: number;
-    tournamentsPlayed: number;
     totalPoints: number;
+    tournamentsPlayed: number;
+    finalsRate: number;
 }
 
 function StatsPage({ user }: StatsPageProps) {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'players' | 'duos' | 'teams'>('players');
+    const [activeTab, setActiveTab] = useState<'players' | 'duos'>('players');
     const [loadingTab, setLoadingTab] = useState<string | null>(null);
     const [dateFilter, setDateFilter] = useState<'all' | 'thisYear' | 'lastYear' | 'thisMonth' | 'lastMonth'>('all');
 
     const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
     const [duoStats, setDuoStats] = useState<DuoStats[]>([]);
-    const [teamNameStats, setTeamNameStats] = useState<TeamNameStats[]>([]);
 
-    // Cache flags to avoid reloading
-    const [playerStatsLoaded, setPlayerStatsLoaded] = useState(false);
-    const [duoStatsLoaded, setDuoStatsLoaded] = useState(false);
-    const [teamStatsLoaded, setTeamStatsLoaded] = useState(false);
     const [displayName, setDisplayName] = useState('User');
 
     useEffect(() => {
@@ -91,33 +85,26 @@ function StatsPage({ user }: StatsPageProps) {
     const exportPlayerStats = () => {
         const data = playerStats.map(p => ({
             userName: p.userName,
-            finalsAppearances: p.finalsAppearances,
-            finalsWins: p.finalsWins,
+            titles: p.titles,
+            runnerUps: p.runnerUps,
             winRate: p.winRate.toFixed(2),
-            tournaments: p.tournaments
+            finalsAppearances: p.finalsAppearances,
+            tournamentsPlayed: p.tournamentsPlayed
         }));
-        exportToCSV(data, 'player-stats.csv', ['userName', 'finalsAppearances', 'finalsWins', 'winRate', 'tournaments']);
+        exportToCSV(data, 'player-finals-stats.csv', ['userName', 'titles', 'runnerUps', 'winRate', 'finalsAppearances', 'tournamentsPlayed']);
     };
 
     const exportDuoStats = () => {
         const data = duoStats.map(d => ({
             partnership: `${d.player1Name} & ${d.player2Name}`,
+            titles: d.titles,
+            runnerUps: d.runnerUps,
+            winRate: d.winRate.toFixed(2),
             finalsAppearances: d.finalsAppearances,
-            finalsWins: d.finalsWins,
-            winRate: d.winRate.toFixed(2)
+            tournamentsPlayed: d.tournamentsPlayed,
+            finalsRate: d.finalsRate.toFixed(2)
         }));
-        exportToCSV(data, 'duo-stats.csv', ['partnership', 'finalsAppearances', 'finalsWins', 'winRate']);
-    };
-
-    const exportTeamStats = () => {
-        const data = teamNameStats.map(t => ({
-            teamName: t.teamName,
-            finalsAppearances: t.finalsAppearances,
-            totalWins: t.totalWins,
-            tournamentsPlayed: t.tournamentsPlayed,
-            totalPoints: t.totalPoints
-        }));
-        exportToCSV(data, 'team-stats.csv', ['teamName', 'finalsAppearances', 'totalWins', 'tournamentsPlayed', 'totalPoints']);
+        exportToCSV(data, 'duo-finals-stats.csv', ['partnership', 'titles', 'runnerUps', 'winRate', 'finalsAppearances', 'tournamentsPlayed', 'finalsRate']);
     };
 
     const getDateRange = () => {
@@ -146,47 +133,31 @@ function StatsPage({ user }: StatsPageProps) {
         loadTabDataForced(activeTab);
     }, [activeTab, dateFilter]);
 
-    const loadTabDataForced = async (tab: 'players' | 'duos' | 'teams') => {
-        // Force load regardless of cache
+    const loadTabDataForced = async (tab: 'players' | 'duos') => {
         setLoadingTab(tab);
 
         try {
             if (tab === 'players') {
                 await loadPlayerStats();
-                setPlayerStatsLoaded(true);
             } else if (tab === 'duos') {
                 await loadDuoStats();
-                setDuoStatsLoaded(true);
-            } else if (tab === 'teams') {
-                await loadTeamNameStats();
-                setTeamStatsLoaded(true);
             }
         } finally {
             setLoadingTab(null);
         }
     };
 
-    const loadTabData = async (tab: 'players' | 'duos' | 'teams') => {
-        // Check if already loaded
-        if (tab === 'players' && playerStatsLoaded) return;
-        if (tab === 'duos' && duoStatsLoaded) return;
-        if (tab === 'teams' && teamStatsLoaded) return;
-
-        await loadTabDataForced(tab);
-    };
-
     const loadPlayerStats = async () => {
         const { startDate, endDate } = getDateRange();
 
-        // Get all matches where round = 'final' and is_completed = true
         let matchesQuery = supabase
             .from('matches')
             .select(`
-        *,
-        team1:teams!matches_team1_id_fkey(*),
-        team2:teams!matches_team2_id_fkey(*),
-        tournaments!inner(created_at)
-      `)
+                *,
+                team1:teams!matches_team1_id_fkey(*),
+                team2:teams!matches_team2_id_fkey(*),
+                tournaments!inner(created_at)
+            `)
             .eq('round', 'final')
             .eq('is_completed', true);
 
@@ -203,7 +174,7 @@ function StatsPage({ user }: StatsPageProps) {
             return;
         }
 
-        // Collect all unique player IDs
+        // Collect all unique player IDs from finals
         const allPlayerIds = new Set<string>();
         for (const match of finalMatches) {
             const team1Members = match.team1?.members || [];
@@ -212,13 +183,40 @@ function StatsPage({ user }: StatsPageProps) {
             team2Members.forEach((id: string) => allPlayerIds.add(id));
         }
 
-        // Fetch all user data in ONE query
+        // Fetch all teams to count tournaments played for these players
+        let teamsQuery = supabase
+            .from('teams')
+            .select('members, tournaments!inner(created_at)');
+
+        if (startDate) {
+            teamsQuery = teamsQuery
+                .gte('tournaments.created_at', startDate.toISOString())
+                .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        const { data: allTeams } = await teamsQuery;
+
+        // Count tournament participation
+        const tournamentCountMap = new Map<string, number>();
+
+        if (allTeams) {
+            allTeams.forEach((team: any) => {
+                const members = team.members || [];
+                members.forEach((memberId: string) => {
+                    // Only count if this player has reached at least one final (i.e., is in our finals set)
+                    if (allPlayerIds.has(memberId)) {
+                        tournamentCountMap.set(memberId, (tournamentCountMap.get(memberId) || 0) + 1);
+                    }
+                });
+            });
+        }
+
+        // Fetch all user data
         const { data: allUsers } = await supabase
             .from('users')
             .select('id, full_name')
             .in('id', Array.from(allPlayerIds));
 
-        // Create a lookup map for user names
         const userMap = new Map<string, string>();
         allUsers?.forEach(user => {
             userMap.set(user.id, user.full_name);
@@ -228,8 +226,9 @@ function StatsPage({ user }: StatsPageProps) {
         const statsMap = new Map<string, {
             name: string;
             finalsAppearances: number;
-            finalsWins: number;
-            tournamentsSet: Set<string>;
+            titles: number;
+            runnerUps: number;
+            totalPoints: number;
         }>();
 
         for (const match of finalMatches) {
@@ -237,59 +236,61 @@ function StatsPage({ user }: StatsPageProps) {
             const team2Members = match.team2?.members || [];
             const winnerId = match.winner_id;
 
-            // Process team1 members
-            for (const memberId of team1Members) {
+            // Assuming match.scores is an array [score1, score2] corresponding to team1 and team2
+            const scores = match.scores || [0, 0];
+            const score1 = scores[0] || 0;
+            const score2 = scores[1] || 0;
+
+            const processMember = (memberId: string, isWinner: boolean, score: number) => {
                 if (!statsMap.has(memberId)) {
                     statsMap.set(memberId, {
                         name: userMap.get(memberId) || 'Unknown',
                         finalsAppearances: 0,
-                        finalsWins: 0,
-                        tournamentsSet: new Set()
+                        titles: 0,
+                        runnerUps: 0,
+                        totalPoints: 0
                     });
                 }
-
                 const stats = statsMap.get(memberId)!;
                 stats.finalsAppearances++;
-                stats.tournamentsSet.add(match.tournament_id);
-                if (winnerId === match.team1_id) {
-                    stats.finalsWins++;
+                stats.totalPoints += score;
+                if (isWinner) {
+                    stats.titles++;
+                } else {
+                    stats.runnerUps++;
                 }
-            }
+            };
 
-            // Process team2 members
-            for (const memberId of team2Members) {
-                if (!statsMap.has(memberId)) {
-                    statsMap.set(memberId, {
-                        name: userMap.get(memberId) || 'Unknown',
-                        finalsAppearances: 0,
-                        finalsWins: 0,
-                        tournamentsSet: new Set()
-                    });
-                }
+            const team1IsWinner = winnerId === match.team1_id;
+            const team2IsWinner = winnerId === match.team2_id;
 
-                const stats = statsMap.get(memberId)!;
-                stats.finalsAppearances++;
-                stats.tournamentsSet.add(match.tournament_id);
-                if (winnerId === match.team2_id) {
-                    stats.finalsWins++;
-                }
-            }
+            team1Members.forEach((id: string) => processMember(id, team1IsWinner, score1));
+            team2Members.forEach((id: string) => processMember(id, team2IsWinner, score2));
         }
 
-        // Convert to array and calculate win rates
-        const statsArray: PlayerStats[] = Array.from(statsMap.entries()).map(([userId, stats]) => ({
-            userId,
-            userName: stats.name,
-            finalsAppearances: stats.finalsAppearances,
-            finalsWins: stats.finalsWins,
-            winRate: stats.finalsAppearances > 0 ? (stats.finalsWins / stats.finalsAppearances) * 100 : 0,
-            tournaments: stats.tournamentsSet.size
-        }));
+        const statsArray: PlayerStats[] = Array.from(statsMap.entries()).map(([userId, stats]) => {
+            // Ensure tournamentsPlayed is at least equal to finalsAppearances (sanity check)
+            // It should be strictly >= finalsAppearances
+            const playedCount = tournamentCountMap.get(userId) || stats.finalsAppearances;
 
-        // Sort by finals wins, then by win rate
+            return {
+                userId,
+                userName: stats.name,
+                titles: stats.titles,
+                runnerUps: stats.runnerUps,
+                finalsAppearances: stats.finalsAppearances,
+                winRate: stats.finalsAppearances > 0 ? (stats.titles / stats.finalsAppearances) * 100 : 0,
+                finalsRate: playedCount > 0 ? (stats.finalsAppearances / playedCount) * 100 : 0,
+                totalPoints: stats.totalPoints,
+                tournamentsPlayed: playedCount
+            };
+        });
+
+        // Sort by Titles, then Win Rate, then Finals Appearances
         statsArray.sort((a, b) => {
-            if (b.finalsWins !== a.finalsWins) return b.finalsWins - a.finalsWins;
-            return b.winRate - a.winRate;
+            if (b.titles !== a.titles) return b.titles - a.titles;
+            if (b.winRate !== a.winRate) return b.winRate - a.winRate;
+            return b.finalsAppearances - a.finalsAppearances;
         });
 
         setPlayerStats(statsArray);
@@ -298,15 +299,14 @@ function StatsPage({ user }: StatsPageProps) {
     const loadDuoStats = async () => {
         const { startDate, endDate } = getDateRange();
 
-        // Get all final matches
         let matchesQuery = supabase
             .from('matches')
             .select(`
-        *,
-        team1:teams!matches_team1_id_fkey(*),
-        team2:teams!matches_team2_id_fkey(*),
-        tournaments!inner(created_at)
-      `)
+                *,
+                team1:teams!matches_team1_id_fkey(*),
+                team2:teams!matches_team2_id_fkey(*),
+                tournaments!inner(created_at)
+            `)
             .eq('round', 'final')
             .eq('is_completed', true);
 
@@ -323,48 +323,83 @@ function StatsPage({ user }: StatsPageProps) {
             return;
         }
 
-        // Collect all unique player IDs
+        // Collect all unique player IDs and identify existing duos in finals
         const allPlayerIds = new Set<string>();
+        const finalistsDuos = new Set<string>();
+
         for (const match of finalMatches) {
             const teams = [match.team1, match.team2];
             for (const team of teams) {
                 const members = team?.members || [];
                 members.forEach((id: string) => allPlayerIds.add(id));
+
+                if (members.length === 2) {
+                    const [p1, p2] = members.sort();
+                    finalistsDuos.add(`${p1}_${p2}`);
+                }
             }
         }
 
-        // Fetch all user data in ONE query
+        // Fetch all teams to count tournaments played for these duos
+        let teamsQuery = supabase
+            .from('teams')
+            .select('members, tournaments!inner(created_at)');
+
+        if (startDate) {
+            teamsQuery = teamsQuery
+                .gte('tournaments.created_at', startDate.toISOString())
+                .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        const { data: allTeams } = await teamsQuery;
+
+        const duoTournamentCountMap = new Map<string, number>();
+
+        if (allTeams) {
+            allTeams.forEach((team: any) => {
+                const members = team.members || [];
+                if (members.length === 2) {
+                    const [p1, p2] = members.sort();
+                    const duoKey = `${p1}_${p2}`;
+
+                    // Only count if this duo has reached at least one final
+                    if (finalistsDuos.has(duoKey)) {
+                        duoTournamentCountMap.set(duoKey, (duoTournamentCountMap.get(duoKey) || 0) + 1);
+                    }
+                }
+            });
+        }
+
         const { data: allUsers } = await supabase
             .from('users')
             .select('id, full_name')
             .in('id', Array.from(allPlayerIds));
 
-        // Create a lookup map for user names
         const userMap = new Map<string, string>();
         allUsers?.forEach(user => {
             userMap.set(user.id, user.full_name);
         });
 
-        // Track stats for each duo (pair of players)
         const duoMap = new Map<string, {
             player1Id: string;
             player2Id: string;
             player1Name: string;
             player2Name: string;
             finalsAppearances: number;
-            finalsWins: number;
+            titles: number;
+            runnerUps: number;
+            totalPoints: number;
         }>();
 
         for (const match of finalMatches) {
             const teams = [match.team1, match.team2];
             const winnerId = match.winner_id;
+            const scores = match.scores || [0, 0];
 
-            for (let i = 0; i < teams.length; i++) {
-                const team = teams[i];
+            // Helper to process a team
+            const processTeam = (team: any, score: number, isWinner: boolean) => {
                 const members = team?.members || [];
-
                 if (members.length === 2) {
-                    // Sort member IDs to ensure consistent key
                     const [p1, p2] = members.sort();
                     const duoKey = `${p1}_${p2}`;
 
@@ -375,128 +410,47 @@ function StatsPage({ user }: StatsPageProps) {
                             player1Name: userMap.get(p1) || 'Unknown',
                             player2Name: userMap.get(p2) || 'Unknown',
                             finalsAppearances: 0,
-                            finalsWins: 0
+                            titles: 0,
+                            runnerUps: 0,
+                            totalPoints: 0
                         });
                     }
 
-                    const duoStats = duoMap.get(duoKey)!;
-                    duoStats.finalsAppearances++;
-                    if (winnerId === team?.id) {
-                        duoStats.finalsWins++;
+                    const stats = duoMap.get(duoKey)!;
+                    stats.finalsAppearances++;
+                    stats.totalPoints += score;
+                    if (isWinner) {
+                        stats.titles++;
+                    } else {
+                        stats.runnerUps++;
                     }
                 }
-            }
+            };
+
+            processTeam(match.team1, scores[0], winnerId === match.team1_id);
+            processTeam(match.team2, scores[1], winnerId === match.team2_id);
         }
 
-        // Convert to array and calculate win rates
-        const duosArray: DuoStats[] = Array.from(duoMap.values()).map(duo => ({
-            ...duo,
-            winRate: duo.finalsAppearances > 0 ? (duo.finalsWins / duo.finalsAppearances) * 100 : 0
-        }));
+        const duosArray: DuoStats[] = Array.from(duoMap.entries()).map(([duoKey, duo]) => {
+            const playedCount = duoTournamentCountMap.get(duoKey) || duo.finalsAppearances;
 
-        // Sort by finals wins, then by win rate
+            return {
+                ...duo,
+                winRate: duo.finalsAppearances > 0 ? (duo.titles / duo.finalsAppearances) * 100 : 0,
+                finalsRate: playedCount > 0 ? (duo.finalsAppearances / playedCount) * 100 : 0,
+                totalPoints: duo.totalPoints,
+                finalsAppearances: duo.finalsAppearances,
+                tournamentsPlayed: playedCount
+            };
+        });
+
         duosArray.sort((a, b) => {
-            if (b.finalsWins !== a.finalsWins) return b.finalsWins - a.finalsWins;
-            return b.winRate - a.winRate;
+            if (b.titles !== a.titles) return b.titles - a.titles;
+            if (b.winRate !== a.winRate) return b.winRate - a.winRate;
+            return b.finalsAppearances - a.finalsAppearances;
         });
 
         setDuoStats(duosArray);
-    };
-
-    const loadTeamNameStats = async () => {
-        const { startDate, endDate } = getDateRange();
-
-        // Get all teams across all tournaments with date filtering
-        let teamsQuery = supabase
-            .from('teams')
-            .select('*, tournaments!inner(created_at)');
-
-        if (startDate) {
-            teamsQuery = teamsQuery
-                .gte('tournaments.created_at', startDate.toISOString())
-                .lte('tournaments.created_at', endDate.toISOString());
-        }
-
-        const { data: allTeams } = await teamsQuery;
-
-        if (!allTeams) return;
-
-        // Track stats for each team name
-        const teamMap = new Map<string, {
-            totalWins: number;
-            finalsAppearances: number;
-            tournamentsSet: Set<string>;
-            totalPoints: number;
-        }>();
-
-        for (const team of allTeams) {
-            const teamName = team.name;
-
-            if (!teamMap.has(teamName)) {
-                teamMap.set(teamName, {
-                    totalWins: 0,
-                    finalsAppearances: 0,
-                    tournamentsSet: new Set(),
-                    totalPoints: 0
-                });
-            }
-
-            const stats = teamMap.get(teamName)!;
-            stats.totalWins += team.wins || 0;
-            stats.tournamentsSet.add(team.tournament_id);
-            stats.totalPoints += team.points || 0;
-        }
-
-        // Check finals appearances
-        let finalMatchesQuery = supabase
-            .from('matches')
-            .select(`
-        *,
-        team1:teams!matches_team1_id_fkey(*),
-        team2:teams!matches_team2_id_fkey(*),
-        tournaments!inner(created_at)
-      `)
-            .eq('round', 'final')
-            .eq('is_completed', true);
-
-        if (startDate) {
-            finalMatchesQuery = finalMatchesQuery
-                .gte('tournaments.created_at', startDate.toISOString())
-                .lte('tournaments.created_at', endDate.toISOString());
-        }
-
-        const { data: finalMatches } = await finalMatchesQuery;
-
-        if (finalMatches) {
-            for (const match of finalMatches) {
-                const team1Name = match.team1?.name;
-                const team2Name = match.team2?.name;
-
-                if (team1Name && teamMap.has(team1Name)) {
-                    teamMap.get(team1Name)!.finalsAppearances++;
-                }
-                if (team2Name && teamMap.has(team2Name)) {
-                    teamMap.get(team2Name)!.finalsAppearances++;
-                }
-            }
-        }
-
-        // Convert to array
-        const teamsArray: TeamNameStats[] = Array.from(teamMap.entries()).map(([teamName, stats]) => ({
-            teamName,
-            totalWins: stats.totalWins,
-            finalsAppearances: stats.finalsAppearances,
-            tournamentsPlayed: stats.tournamentsSet.size,
-            totalPoints: stats.totalPoints
-        }));
-
-        // Sort by finals appearances, then total wins
-        teamsArray.sort((a, b) => {
-            if (b.finalsAppearances !== a.finalsAppearances) return b.finalsAppearances - a.finalsAppearances;
-            return b.totalWins - a.totalWins;
-        });
-
-        setTeamNameStats(teamsArray);
     };
 
     return (
@@ -520,57 +474,24 @@ function StatsPage({ user }: StatsPageProps) {
                             <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-500" />
                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800">Finals Statistics</h1>
                         </div>
-                        <p className="text-sm sm:text-base text-gray-600 px-4">Championship performance across all tournaments</p>
+                        <p className="text-sm sm:text-base text-gray-600 px-4">Championship performance overview</p>
                     </div>
 
                     {/* Date Filter */}
                     <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
                         <Filter className="w-4 h-4 text-gray-600" />
-                        <button
-                            onClick={() => setDateFilter('all')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'all'
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                        >
-                            All Time
-                        </button>
-                        <button
-                            onClick={() => setDateFilter('thisYear')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'thisYear'
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                        >
-                            This Year
-                        </button>
-                        <button
-                            onClick={() => setDateFilter('lastYear')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'lastYear'
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                        >
-                            Last Year
-                        </button>
-                        <button
-                            onClick={() => setDateFilter('thisMonth')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'thisMonth'
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                        >
-                            This Month
-                        </button>
-                        <button
-                            onClick={() => setDateFilter('lastMonth')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === 'lastMonth'
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                        >
-                            Last Month
-                        </button>
+                        {['all', 'thisYear', 'lastYear', 'thisMonth', 'lastMonth'].map((filter) => (
+                            <button
+                                key={filter}
+                                onClick={() => setDateFilter(filter as any)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === filter
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    }`}
+                            >
+                                {filter === 'all' ? 'All Time' : filter.replace(/([A-Z])/g, ' $1').trim()}
+                            </button>
+                        ))}
                     </div>
                 </header>
 
@@ -595,16 +516,6 @@ function StatsPage({ user }: StatsPageProps) {
                     >
                         <Users className="w-5 h-5" />
                         Duo Stats
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('teams')}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition ${activeTab === 'teams'
-                            ? 'bg-indigo-600 text-white shadow-lg'
-                            : 'bg-white text-gray-600 hover:bg-gray-50'
-                            }`}
-                    >
-                        <Trophy className="w-5 h-5" />
-                        Team Names
                     </button>
                 </div>
 
@@ -655,11 +566,12 @@ function StatsPage({ user }: StatsPageProps) {
                                                     {player.userName}
                                                 </button>
                                             }
-                                            subtitle={`${player.tournaments} tournament${player.tournaments !== 1 ? 's' : ''}`}
+                                            subtitle={`Played ${player.tournamentsPlayed} tournament${player.tournamentsPlayed !== 1 ? 's' : ''}`}
                                             stats={[
-                                                { label: 'Wins', value: player.finalsWins, color: 'text-indigo-600' },
-                                                { label: 'Finals', value: player.finalsAppearances, color: 'text-gray-700' },
-                                                { label: 'Win Rate', value: `${player.winRate.toFixed(0)}%`, color: 'text-green-600' }
+                                                { label: 'Titles', value: player.titles, color: 'text-yellow-600' },
+                                                { label: 'Win Rate', value: `${player.winRate.toFixed(0)}%`, color: 'text-green-600' },
+                                                { label: 'Finals', value: player.finalsAppearances, color: 'text-indigo-600' },
+                                                { label: 'Finals Rate', value: `${player.finalsRate.toFixed(0)}%`, color: 'text-blue-600' },
                                             ]}
                                         />
                                     ))}
@@ -728,62 +640,12 @@ function StatsPage({ user }: StatsPageProps) {
                                                     </button>
                                                 </>
                                             }
-                                            subtitle="Partnership"
+                                            subtitle={`Played ${duo.tournamentsPlayed} tournament${duo.tournamentsPlayed !== 1 ? 's' : ''}`}
                                             stats={[
-                                                { label: 'Wins', value: duo.finalsWins, color: 'text-indigo-600' },
-                                                { label: 'Finals', value: duo.finalsAppearances, color: 'text-gray-700' },
-                                                { label: 'Win Rate', value: `${duo.winRate.toFixed(0)}%`, color: 'text-green-600' }
-                                            ]}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Team Names Tab */}
-                {activeTab === 'teams' && (
-                    <div className="max-w-6xl mx-auto">
-                        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2">
-                                    <Trophy className="w-6 h-6 text-indigo-600" />
-                                    Team Name Performance
-                                </h2>
-                                {teamNameStats.length > 0 && (
-                                    <button
-                                        onClick={exportTeamStats}
-                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition min-h-[44px]"
-                                    >
-                                        <Download className="w-4 h-4" />
-                                        Export CSV
-                                    </button>
-                                )}
-                            </div>
-
-                            {loadingTab === 'teams' ? (
-                                <div className="text-center py-12">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mx-auto mb-4" />
-                                    <p className="text-gray-600">Loading team statistics...</p>
-                                </div>
-                            ) : teamNameStats.length === 0 ? (
-                                <div className="text-center py-12 text-gray-500">
-                                    <Trophy className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                                    <p>No team data available yet</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {teamNameStats.map((team, index) => (
-                                        <StatCard
-                                            key={team.teamName}
-                                            rank={index + 1}
-                                            title={team.teamName}
-                                            subtitle={`${team.tournamentsPlayed} tournament${team.tournamentsPlayed !== 1 ? 's' : ''}`}
-                                            stats={[
-                                                { label: 'Finals', value: team.finalsAppearances, color: 'text-indigo-600' },
-                                                { label: 'Total Wins', value: team.totalWins, color: 'text-green-600' },
-                                                { label: 'Points', value: team.totalPoints, color: 'text-gray-700' }
+                                                { label: 'Titles', value: duo.titles, color: 'text-yellow-600' },
+                                                { label: 'Win Rate', value: `${duo.winRate.toFixed(0)}%`, color: 'text-green-600' },
+                                                { label: 'Finals', value: duo.finalsAppearances, color: 'text-indigo-600' },
+                                                { label: 'Finals Rate', value: `${duo.finalsRate.toFixed(0)}%`, color: 'text-blue-600' },
                                             ]}
                                         />
                                     ))}
