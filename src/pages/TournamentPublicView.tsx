@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Trophy, Users, MapPin, ArrowLeft, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { Team, Match } from '../types';
+import { Team, Match, UserProfile } from '../types';
 import Bracket from '../components/Bracket';
 import TeamStats from '../components/TeamStats';
 
@@ -11,6 +11,7 @@ function TournamentPublicView() {
     const navigate = useNavigate();
     const [tournament, setTournament] = useState<any>(null);
     const [teams, setTeams] = useState<Team[]>([]);
+    const [teamMembers, setTeamMembers] = useState<{ [key: string]: UserProfile[] }>({});
     const [matches, setMatches] = useState<Match[]>([]);
     const [finalMatch, setFinalMatch] = useState<Match | null>(null);
     const [finalTeam, setFinalTeam] = useState<Team | null>(null);
@@ -23,6 +24,31 @@ function TournamentPublicView() {
             subscribeToUpdates();
         }
     }, [tournamentId]);
+
+    useEffect(() => {
+        if (teams.length > 0) {
+            loadTeamMembers();
+        }
+    }, [teams]);
+
+    const loadTeamMembers = async () => {
+        const members: { [key: string]: UserProfile[] } = {};
+
+        for (const team of teams) {
+            if (team.members && team.members.length > 0) {
+                const { data: users } = await supabase
+                    .from('users')
+                    .select('*')
+                    .in('id', team.members);
+
+                if (users) {
+                    members[team.id] = users;
+                }
+            }
+        }
+
+        setTeamMembers(members);
+    };
 
     const loadTournament = async () => {
         if (!tournamentId) return;
@@ -226,6 +252,22 @@ function TournamentPublicView() {
                         <Trophy className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-yellow-900 mb-3" />
                         <h2 className="text-2xl sm:text-3xl font-bold text-yellow-900 mb-2">🎉 Champion!</h2>
                         <p className="text-xl sm:text-2xl font-semibold text-yellow-900">{finalTeam.name}</p>
+                        <div className="flex justify-center gap-2 mt-2">
+                            {teamMembers[finalTeam.id]?.map((member, idx) => (
+                                <span key={member.id} className="text-yellow-900 font-medium">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/profile/${member.id}`);
+                                        }}
+                                        className="hover:underline cursor-pointer"
+                                    >
+                                        {member.full_name}
+                                    </button>
+                                    {idx < (teamMembers[finalTeam.id]?.length || 0) - 1 ? ',' : ''}
+                                </span>
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -239,8 +281,24 @@ function TournamentPublicView() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {teams.map((team) => (
                                 <div key={team.id} className="p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-400 transition">
-                                    <h3 className="font-semibold text-gray-800 text-lg mb-2">{team.name}</h3>
-                                    <div className="flex justify-between text-sm text-gray-600">
+                                    <h3 className="font-semibold text-gray-800 text-lg mb-1">{team.name}</h3>
+                                    <div className="text-sm text-gray-500 mb-3">
+                                        {teamMembers[team.id]?.map((member, idx) => (
+                                            <span key={member.id}>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate(`/profile/${member.id}`);
+                                                    }}
+                                                    className="hover:text-indigo-600 hover:underline cursor-pointer"
+                                                >
+                                                    {member.full_name}
+                                                </button>
+                                                {idx < (teamMembers[team.id]?.length || 0) - 1 ? ', ' : ''}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="flex justify-between text-sm text-gray-600 border-t pt-2">
                                         <span>Wins: <strong>{team.wins}</strong></span>
                                         <span>Points: <strong>{team.points}</strong></span>
                                     </div>

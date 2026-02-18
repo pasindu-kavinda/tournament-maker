@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, TrendingUp, MapPin } from 'lucide-react';
+import { Trophy, TrendingUp, MapPin, Eye } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport, ToastClose } from '../components/Toast';
@@ -183,16 +183,59 @@ const HomePage = ({ user }: HomePageProps) => {
                     onClick={() => navigate(`/tournament/${tournament.id}`)}
                     className="p-4 border border-gray-200 rounded-lg hover:border-indigo-500 cursor-pointer transition-colors"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-medium">{tournament.name}</h3>
-                      <span className={`px-3 py-1 rounded-full text-sm ${tournament.status === 'completed'
-                        ? 'bg-green-100 text-green-800'
-                        : tournament.status === 'in_progress'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                        }`}>
-                        {tournament.status}
-                      </span>
+                    <div className="mb-2">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold text-gray-900 break-words sm:truncate pr-2">{tournament.name}</h3>
+
+                          {/* Desktop Status */}
+                          <span className={`hidden sm:inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium w-fit ${tournament.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : tournament.status === 'in_progress'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-800'
+                            }`}>
+                            {tournament.status === 'in_progress' ? 'Live' : tournament.status.replace('_', ' ')}
+                          </span>
+                        </div>
+
+                        {/* Desktop Inspect Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/tournament/${tournament.id}/view`);
+                          }}
+                          className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors text-sm font-medium flex-shrink-0"
+                          title="Live Inspect"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>Inspect</span>
+                        </button>
+                      </div>
+
+                      {/* Mobile Controls Row */}
+                      <div className="flex sm:hidden items-center justify-between mt-3">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium w-fit ${tournament.status === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : tournament.status === 'in_progress'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                          }`}>
+                          {tournament.status === 'in_progress' ? 'Live' : tournament.status.replace('_', ' ')}
+                        </span>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/tournament/${tournament.id}/view`);
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors text-sm font-medium"
+                          title="Live Inspect"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>Inspect</span>
+                        </button>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <MapPin className="w-4 h-4" />
