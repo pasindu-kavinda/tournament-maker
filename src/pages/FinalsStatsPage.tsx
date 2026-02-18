@@ -41,6 +41,7 @@ function StatsPage({ user }: StatsPageProps) {
     const [activeTab, setActiveTab] = useState<'players' | 'duos'>('players');
     const [loadingTab, setLoadingTab] = useState<string | null>(null);
     const [dateFilter, setDateFilter] = useState<'all' | 'thisYear' | 'lastYear' | 'thisMonth' | 'lastMonth'>('all');
+    const [sortBy, setSortBy] = useState<'titles' | 'appearances'>('titles');
 
     const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
     const [duoStats, setDuoStats] = useState<DuoStats[]>([]);
@@ -129,9 +130,9 @@ function StatsPage({ user }: StatsPageProps) {
     };
 
     useEffect(() => {
-        // Force reload when date filter changes
+        // Force reload when date filter or sort changes
         loadTabDataForced(activeTab);
-    }, [activeTab, dateFilter]);
+    }, [activeTab, dateFilter, sortBy]);
 
     const loadTabDataForced = async (tab: 'players' | 'duos') => {
         setLoadingTab(tab);
@@ -286,11 +287,17 @@ function StatsPage({ user }: StatsPageProps) {
             };
         });
 
-        // Sort by Titles, then Win Rate, then Finals Appearances
+        // Sort based on filter
         statsArray.sort((a, b) => {
-            if (b.titles !== a.titles) return b.titles - a.titles;
-            if (b.winRate !== a.winRate) return b.winRate - a.winRate;
-            return b.finalsAppearances - a.finalsAppearances;
+            if (sortBy === 'titles') {
+                if (b.titles !== a.titles) return b.titles - a.titles;
+                if (b.winRate !== a.winRate) return b.winRate - a.winRate;
+                return b.finalsAppearances - a.finalsAppearances;
+            } else {
+                if (b.finalsAppearances !== a.finalsAppearances) return b.finalsAppearances - a.finalsAppearances;
+                if (b.titles !== a.titles) return b.titles - a.titles;
+                return b.winRate - a.winRate;
+            }
         });
 
         setPlayerStats(statsArray);
@@ -445,9 +452,15 @@ function StatsPage({ user }: StatsPageProps) {
         });
 
         duosArray.sort((a, b) => {
-            if (b.titles !== a.titles) return b.titles - a.titles;
-            if (b.winRate !== a.winRate) return b.winRate - a.winRate;
-            return b.finalsAppearances - a.finalsAppearances;
+            if (sortBy === 'titles') {
+                if (b.titles !== a.titles) return b.titles - a.titles;
+                if (b.winRate !== a.winRate) return b.winRate - a.winRate;
+                return b.finalsAppearances - a.finalsAppearances;
+            } else {
+                if (b.finalsAppearances !== a.finalsAppearances) return b.finalsAppearances - a.finalsAppearances;
+                if (b.titles !== a.titles) return b.titles - a.titles;
+                return b.winRate - a.winRate;
+            }
         });
 
         setDuoStats(duosArray);
@@ -477,21 +490,46 @@ function StatsPage({ user }: StatsPageProps) {
                         <p className="text-sm sm:text-base text-gray-600 px-4">Championship performance overview</p>
                     </div>
 
-                    {/* Date Filter */}
-                    <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
-                        <Filter className="w-4 h-4 text-gray-600" />
-                        {['all', 'thisYear', 'lastYear', 'thisMonth', 'lastMonth'].map((filter) => (
+                    {/* Filters */}
+                    <div className="flex flex-col items-center gap-4 mt-6">
+                        {/* Date Filter */}
+                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                            <Filter className="w-4 h-4 text-gray-600" />
+                            {['all', 'thisYear', 'lastYear', 'thisMonth', 'lastMonth'].map((filter) => (
+                                <button
+                                    key={filter}
+                                    onClick={() => setDateFilter(filter as any)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === filter
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        }`}
+                                >
+                                    {filter === 'all' ? 'All Time' : filter.replace(/([A-Z])/g, ' $1').trim()}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Metric Toggle */}
+                        <div className="flex bg-gray-200 p-1 rounded-lg">
                             <button
-                                key={filter}
-                                onClick={() => setDateFilter(filter as any)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${dateFilter === filter
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                onClick={() => setSortBy('titles')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${sortBy === 'titles'
+                                        ? 'bg-white text-indigo-700 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-800'
                                     }`}
                             >
-                                {filter === 'all' ? 'All Time' : filter.replace(/([A-Z])/g, ' $1').trim()}
+                                Final Wins
                             </button>
-                        ))}
+                            <button
+                                onClick={() => setSortBy('appearances')}
+                                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${sortBy === 'appearances'
+                                        ? 'bg-white text-indigo-700 shadow-sm'
+                                        : 'text-gray-600 hover:text-gray-800'
+                                    }`}
+                            >
+                                Final Appearances
+                            </button>
+                        </div>
                     </div>
                 </header>
 
