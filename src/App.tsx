@@ -16,6 +16,7 @@ import AchievementsStatsPage from './pages/AchievementsStatsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import TournamentPublicView from './pages/TournamentPublicView';
 import PlayerProfilePage from './pages/PlayerProfilePage';
+import TournamentStructurePage from './pages/TournamentStructurePage';
 import Auth from './components/Auth';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { User } from '@supabase/supabase-js';
@@ -68,6 +69,7 @@ function App() {
               <Route path="/tournament/:id" element={<TournamentPage user={user} />} />
               <Route path="/profile" element={<PlayerProfilePage user={user} />} />
               <Route path="/profile/:userId" element={<PlayerProfilePage user={user} />} />
+              <Route path="/structures" element={<TournamentStructurePage />} />
 
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminLayout />}>

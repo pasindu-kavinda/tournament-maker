@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { User as UserIcon, Shield, ChevronDown, LogOut, KeyRound } from 'lucide-react';
+import { User as UserIcon, Shield, ChevronDown, LogOut, KeyRound, Layout } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAdmin } from '@/contexts/AdminContext';
 import {
@@ -41,6 +41,10 @@ export default function UserDropdown({ displayName }: UserDropdownProps) {
                 <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
                     <UserIcon className="w-4 h-4 mr-2" />
                     <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/structures')} className="cursor-pointer">
+                    <Layout className="w-4 h-4 mr-2" />
+                    <span>Structures</span>
                 </DropdownMenuItem>
                 {isAdmin && (
                     <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
