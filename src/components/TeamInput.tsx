@@ -8,9 +8,10 @@ interface TeamInputProps {
   maxMembers?: number;
   structure?: string;
   usedPlayerIds?: string[];
+  genderFilter?: 'male' | 'female' | null;
 }
 
-function TeamInput({ onAddTeam, maxMembers, structure, usedPlayerIds = [] }: TeamInputProps) {
+function TeamInput({ onAddTeam, maxMembers, structure, usedPlayerIds = [], genderFilter }: TeamInputProps) {
   const [selectedGroupId, setSelectedGroupId] = useState<string>('A');
   const [teamName, setTeamName] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<UserProfile[]>([]);
@@ -180,7 +181,11 @@ function TeamInput({ onAddTeam, maxMembers, structure, usedPlayerIds = [] }: Tea
           >
             <option value="">Select a player</option>
             {availableUsers
-              .filter(user => !selectedUsers.some(selected => selected.id === user.id) && !usedPlayerIds.includes(user.id))
+              .filter(user =>
+                !selectedUsers.some(selected => selected.id === user.id) &&
+                !usedPlayerIds.includes(user.id) &&
+                (!genderFilter || !user.gender || user.gender === genderFilter)
+              )
               .map(user => (
                 <option key={user.id} value={user.id}>
                   {user.full_name}

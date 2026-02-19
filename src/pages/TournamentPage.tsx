@@ -796,6 +796,13 @@ function TournamentPage({ user }: TournamentPageProps) {
                     maxMembers={tournament.type?.includes('single') ? 1 : tournament.type?.includes('double') ? 2 : undefined}
                     structure={tournament.structure}
                     usedPlayerIds={Object.values(teamMembers).flat().map(u => u.id)}
+                    genderFilter={
+                      // @ts-ignore
+                      tournament.type?.startsWith('men-') ? 'male'
+                        // @ts-ignore
+                        : tournament.type?.startsWith('women-') ? 'female'
+                          : null
+                    }
                   />
 
                   <div className="mt-4 xs:mt-6 space-y-2 xs:space-y-3">

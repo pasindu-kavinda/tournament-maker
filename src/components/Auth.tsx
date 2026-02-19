@@ -10,6 +10,7 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | ''>('');
   const [toast, setToast] = useState<{ title: string; description: string; variant: 'success' | 'error' } | null>(null);
 
   const showToast = (title: string, description: string, variant: 'success' | 'error') => {
@@ -20,13 +21,14 @@ export default function Auth() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: name
+          full_name: name,
+          gender: gender || null
         }
       }
     });
@@ -57,7 +59,7 @@ export default function Auth() {
       email,
       password,
     });
-    
+
     if (error) {
       showToast('Error', error.message, 'error');
     }
@@ -73,25 +75,23 @@ export default function Auth() {
       <ToastProvider>
         <div className="bg-white p-8 rounded-xl shadow-lg w-96">
           <h1 className="text-2xl font-bold text-center mb-6">Tournament Maker</h1>
-          
+
           <div className="flex gap-4 mb-8">
             <button
               onClick={() => setIsSignUp(false)}
-              className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
-                !isSignUp
+              className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${!isSignUp
                   ? 'bg-indigo-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Sign In
             </button>
             <button
               onClick={() => setIsSignUp(true)}
-              className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
-                isSignUp
+              className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${isSignUp
                   ? 'bg-indigo-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Sign Up
             </button>
@@ -113,7 +113,45 @@ export default function Auth() {
                 />
               </div>
             )}
-            
+
+            {isSignUp && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Gender
+                </label>
+                <div className="flex gap-3">
+                  <label className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border cursor-pointer transition ${gender === 'male'
+                      ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-semibold'
+                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}>
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="male"
+                      checked={gender === 'male'}
+                      onChange={() => setGender('male')}
+                      className="sr-only"
+                    />
+                    ♂ Male
+                  </label>
+                  <label className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border cursor-pointer transition ${gender === 'female'
+                      ? 'bg-pink-50 border-pink-500 text-pink-700 font-semibold'
+                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}>
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="female"
+                      checked={gender === 'female'}
+                      onChange={() => setGender('female')}
+                      className="sr-only"
+                    />
+                    ♀ Female
+                  </label>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -173,18 +211,15 @@ export default function Auth() {
         </div>
 
         {toast && (
-          <Toast className={`${
-            toast.variant === 'success' ? 'bg-green-50' : 'bg-red-50'
-          }`}>
+          <Toast className={`${toast.variant === 'success' ? 'bg-green-50' : 'bg-red-50'
+            }`}>
             <div className="grid gap-1">
-              <ToastTitle className={`${
-                toast.variant === 'success' ? 'text-green-900' : 'text-red-900'
-              }`}>
+              <ToastTitle className={`${toast.variant === 'success' ? 'text-green-900' : 'text-red-900'
+                }`}>
                 {toast.title}
               </ToastTitle>
-              <ToastDescription className={`${
-                toast.variant === 'success' ? 'text-green-700' : 'text-red-700'
-              }`}>
+              <ToastDescription className={`${toast.variant === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}>
                 {toast.description}
               </ToastDescription>
             </div>
