@@ -6,6 +6,7 @@ export interface Team {
   wins: number;
   matchesPlayed: number;
   leadPoints: number;
+  groupId?: string;
 }
 
 export type TournamentType =
@@ -16,16 +17,20 @@ export type TournamentType =
   | 'mixed-double'
   | 'mixed-single';
 
+export type TournamentStructure = 'round-robin' | 'knockout' | 'groups';
+
 export interface Match {
   id: string;
   teams: [Team | null, Team | null];
   scores: [number | null, number | null];
   isCompleted: boolean;
-  round: 'regular' | 'final';
+  round: 'regular' | 'final' | 'quarter-final' | 'semi-final';
   matchNumber: number;
   pointDifference?: number;
   winner?: string;
   tournamentStatus?: string;
+  groupId?: string;
+  nextMatchId?: string;
 }
 
 export interface UserProfile {

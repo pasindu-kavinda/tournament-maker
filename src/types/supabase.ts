@@ -18,6 +18,7 @@ export interface Database {
           updated_at: string
           created_by: string
           type: string
+          structure: 'round-robin' | 'knockout' | 'groups'
         }
         Insert: {
           id?: string
@@ -27,6 +28,7 @@ export interface Database {
           updated_at?: string
           created_by: string
           type?: string
+          structure?: 'round-robin' | 'knockout' | 'groups'
         }
         Update: {
           id?: string
@@ -36,6 +38,7 @@ export interface Database {
           updated_at?: string
           created_by?: string
           type?: string
+          structure?: 'round-robin' | 'knockout' | 'groups'
         }
       }
       teams: {
@@ -48,7 +51,8 @@ export interface Database {
           wins: number
           matches_played: number
           lead_points: number
-          created_at: string
+          group_id: string | null
+          created_at: string | null
         }
         Insert: {
           id?: string
@@ -59,6 +63,7 @@ export interface Database {
           wins?: number
           matches_played?: number
           lead_points?: number
+          group_id?: string | null
           created_at?: string
         }
         Update: {
@@ -70,6 +75,7 @@ export interface Database {
           wins?: number
           matches_played?: number
           lead_points?: number
+          group_id?: string | null
           created_at?: string
         }
       }
@@ -86,7 +92,9 @@ export interface Database {
           round: 'regular' | 'final'
           is_completed: boolean
           point_difference: number
-          created_at: string
+          group_id: string | null
+          next_match_id: string | null
+          created_at: string | null
         }
         Insert: {
           id?: string
@@ -100,6 +108,8 @@ export interface Database {
           round: 'regular' | 'final'
           is_completed?: boolean
           point_difference?: number
+          group_id?: string | null
+          next_match_id?: string | null
           created_at?: string
         }
         Update: {
@@ -112,6 +122,8 @@ export interface Database {
           winner_id?: string | null
           match_number?: number
           round?: 'regular' | 'final'
+          group_id?: string | null
+          next_match_id?: string | null
           is_completed?: boolean
           point_difference?: number
           created_at?: string
