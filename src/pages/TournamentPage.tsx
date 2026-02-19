@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trophy, MapPin, Users, Trash2, ArrowLeft, TrendingUp, FileText, Network, Target } from 'lucide-react';
+import { Trophy, MapPin, Users, Trash2, ArrowLeft, TrendingUp, Target, FileText } from 'lucide-react';
 import TeamInput from '../components/TeamInput';
 import Bracket from '../components/Bracket';
-import BracketTree from '../components/BracketTree';
+
 import TeamStats from '../components/TeamStats';
 import { Team, Match, UserProfile } from '../types';
 import { User } from '@supabase/supabase-js';
@@ -40,7 +40,6 @@ function TournamentPage({ user }: TournamentPageProps) {
   const [showSummary, setShowSummary] = useState(false);
   const [teamMembers, setTeamMembers] = useState<{ [key: string]: UserProfile[] }>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showBracketTree, setShowBracketTree] = useState(false);
   const [displayName, setDisplayName] = useState('User');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -759,26 +758,13 @@ function TournamentPage({ user }: TournamentPageProps) {
         </header>
 
         {isCompleted && (
-          <div className="flex flex-col xs:flex-row justify-center gap-3 xs:gap-4 mb-6 xs:mb-8">
+          <div className="flex justify-center mb-6">
             <button
-              onClick={() => {
-                setShowSummary(!showSummary);
-                if (!showSummary) setShowBracketTree(false);
-              }}
-              className="flex items-center justify-center gap-2 px-4 xs:px-6 py-2.5 xs:py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm xs:text-base"
+              onClick={() => setShowSummary(s => !s)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-semibold text-sm shadow-sm"
             >
-              <FileText className="w-4 h-4 xs:w-5 xs:h-5" />
-              <span>{showSummary ? 'Show Matches' : 'Show Summary'}</span>
-            </button>
-            <button
-              onClick={() => {
-                setShowBracketTree(!showBracketTree);
-                if (!showBracketTree) setShowSummary(false);
-              }}
-              className="flex items-center justify-center gap-2 px-4 xs:px-6 py-2.5 xs:py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm xs:text-base"
-            >
-              <Network className="w-4 h-4 xs:w-5 xs:h-5" />
-              <span>{showBracketTree ? 'Hide Tree' : 'Show Tree'}</span>
+              <FileText className="w-4 h-4" />
+              {showSummary ? 'Hide Summary' : 'Show Summary'}
             </button>
           </div>
         )}
@@ -790,18 +776,11 @@ function TournamentPage({ user }: TournamentPageProps) {
             matches={matches}
             teams={teams}
             tournament={tournament}
+            teamMembers={teamMembers}
           />
         )}
 
-        {isCompleted && showBracketTree && (
-          <BracketTree
-            matches={matches}
-            finalMatch={finalMatch}
-            teams={teams}
-          />
-        )}
-
-        <div className={isCompleted && (showSummary || showBracketTree) ? 'hidden' : ''}>
+        <div>
           <div className="grid lg:grid-cols-[350px,1fr] gap-4 xs:gap-6 lg:gap-8">
             <div className="space-y-4 xs:space-y-6">
               {matches.length === 0 && (isCreator || isAdmin) && (
