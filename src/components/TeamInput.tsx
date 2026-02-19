@@ -83,7 +83,7 @@ function TeamInput({ onAddTeam, maxMembers, structure }: TeamInputProps) {
   };
 
   const isFormValid = teamName.trim().length > 0 && selectedUsers.length > 0
-    && (!maxMembers || selectedUsers.length === maxMembers);
+    && (!maxMembers || (maxMembers === 2 ? selectedUsers.length <= 2 : selectedUsers.length === maxMembers));
 
   if (loading) {
     return (
@@ -127,7 +127,7 @@ function TeamInput({ onAddTeam, maxMembers, structure }: TeamInputProps) {
         />
         {maxMembers && (
           <p className="text-xs text-gray-500 mt-1">
-            Required members: {selectedUsers.length}/{maxMembers}
+            Members: {selectedUsers.length}/{maxMembers === 2 ? '1-2' : maxMembers}
           </p>
         )}
       </div>
