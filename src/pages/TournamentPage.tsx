@@ -795,6 +795,7 @@ function TournamentPage({ user }: TournamentPageProps) {
                     // @ts-ignore
                     maxMembers={tournament.type?.includes('single') ? 1 : tournament.type?.includes('double') ? 2 : undefined}
                     structure={tournament.structure}
+                    usedPlayerIds={Object.values(teamMembers).flat().map(u => u.id)}
                   />
 
                   <div className="mt-4 xs:mt-6 space-y-2 xs:space-y-3">

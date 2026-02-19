@@ -7,9 +7,10 @@ interface TeamInputProps {
   onAddTeam: (team: Team) => void;
   maxMembers?: number;
   structure?: string;
+  usedPlayerIds?: string[];
 }
 
-function TeamInput({ onAddTeam, maxMembers, structure }: TeamInputProps) {
+function TeamInput({ onAddTeam, maxMembers, structure, usedPlayerIds = [] }: TeamInputProps) {
   const [selectedGroupId, setSelectedGroupId] = useState<string>('A');
   const [teamName, setTeamName] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<UserProfile[]>([]);
@@ -179,7 +180,7 @@ function TeamInput({ onAddTeam, maxMembers, structure }: TeamInputProps) {
           >
             <option value="">Select a player</option>
             {availableUsers
-              .filter(user => !selectedUsers.some(selected => selected.id === user.id))
+              .filter(user => !selectedUsers.some(selected => selected.id === user.id) && !usedPlayerIds.includes(user.id))
               .map(user => (
                 <option key={user.id} value={user.id}>
                   {user.full_name}
