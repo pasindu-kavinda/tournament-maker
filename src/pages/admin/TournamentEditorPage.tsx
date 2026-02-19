@@ -11,6 +11,7 @@ interface Tournament {
     date: string;
     user_id: string;
     creator_name?: string;
+    type?: string;
 }
 
 interface Team {
@@ -60,6 +61,7 @@ export default function TournamentEditorPage() {
     const [editedVenue, setEditedVenue] = useState('');
     const [editedStatus, setEditedStatus] = useState<'pending' | 'in_progress' | 'completed'>('pending');
     const [editedDate, setEditedDate] = useState('');
+    const [editedType, setEditedType] = useState('');
 
     useEffect(() => {
         if (id) {
@@ -96,6 +98,7 @@ export default function TournamentEditorPage() {
             setEditedName(enrichedTournament.name);
             setEditedVenue(enrichedTournament.venue);
             setEditedStatus(enrichedTournament.status);
+            setEditedType(enrichedTournament.type || 'men-single');
             // Use created_at if date is not set, format it properly for date input
             const dateValue = enrichedTournament.date || enrichedTournament.created_at.split('T')[0];
             setEditedDate(dateValue);
@@ -126,7 +129,7 @@ export default function TournamentEditorPage() {
                     if (usersData) {
                         const userMap = new Map(usersData.map(u => [u.id, u]));
                         const membersMap: { [key: string]: UserProfile[] } = {};
-                        
+
                         teamsData.forEach(team => {
                             membersMap[team.id] = team.members
                                 .map((memberId: string) => userMap.get(memberId))
@@ -180,12 +183,13 @@ export default function TournamentEditorPage() {
                     venue: editedVenue,
                     status: editedStatus,
                     date: editedDate,
+                    type: editedType,
                 })
                 .eq('id', id);
 
             if (error) throw error;
 
-            setTournament(prev => prev ? { ...prev, name: editedName, venue: editedVenue, status: editedStatus, date: editedDate } : null);
+            setTournament(prev => prev ? { ...prev, name: editedName, venue: editedVenue, status: editedStatus, date: editedDate, type: editedType } : null);
             alert('Tournament updated successfully!');
         } catch (error) {
             console.error('Error saving tournament:', error);
@@ -292,8 +296,8 @@ export default function TournamentEditorPage() {
                     <button
                         onClick={() => setActiveTab('overview')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${activeTab === 'overview'
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         <Trophy className="w-4 h-4" />
@@ -302,8 +306,8 @@ export default function TournamentEditorPage() {
                     <button
                         onClick={() => setActiveTab('teams')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${activeTab === 'teams'
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         <Users className="w-4 h-4" />
@@ -312,8 +316,8 @@ export default function TournamentEditorPage() {
                     <button
                         onClick={() => setActiveTab('matches')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${activeTab === 'matches'
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         <Sword className="w-4 h-4" />
@@ -322,8 +326,8 @@ export default function TournamentEditorPage() {
                     <button
                         onClick={() => setActiveTab('final')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${activeTab === 'final'
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                     >
                         <Award className="w-4 h-4" />
@@ -344,6 +348,7 @@ export default function TournamentEditorPage() {
                     onVenueChange={setEditedVenue}
                     onStatusChange={setEditedStatus}
                     onDateChange={setEditedDate}
+                    onTypeChange={setEditedType}
                     onSave={saveTournamentOverview}
                     saving={saving}
                 />
@@ -375,11 +380,21 @@ interface OverviewTabProps {
     onVenueChange: (value: string) => void;
     onStatusChange: (value: 'pending' | 'in_progress' | 'completed') => void;
     onDateChange: (value: string) => void;
+    onTypeChange: (value: string) => void;
     onSave: () => void;
     saving: boolean;
 }
 
-function OverviewTab({ tournament, name, venue, status, date, onNameChange, onVenueChange, onStatusChange, onDateChange, onSave, saving }: OverviewTabProps) {
+const TOURNAMENT_TYPES = [
+    { value: 'men-single', label: "Men's Single" },
+    { value: 'women-single', label: "Women's Single" },
+    { value: 'men-double', label: "Men's Double" },
+    { value: 'women-double', label: "Women's Double" },
+    { value: 'mixed-double', label: "Mixed Double" },
+    { value: 'mixed-single', label: "Mixed Single" }
+];
+
+function OverviewTab({ tournament, name, venue, status, date, onNameChange, onVenueChange, onStatusChange, onDateChange, onTypeChange, onSave, saving }: OverviewTabProps) {
     return (
         <div className="bg-white rounded-lg shadow p-6 space-y-6">
             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -447,6 +462,23 @@ function OverviewTab({ tournament, name, venue, status, date, onNameChange, onVe
                         <option value="pending">Pending</option>
                         <option value="in_progress">In Progress</option>
                         <option value="completed">Completed</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tournament Type
+                    </label>
+                    <select
+                        value={tournament.type || 'men-single'}
+                        onChange={(e) => onTypeChange(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    >
+                        {TOURNAMENT_TYPES.map((t) => (
+                            <option key={t.value} value={t.value}>
+                                {t.label}
+                            </option>
+                        ))}
                     </select>
                 </div>
             </div>
@@ -753,8 +785,8 @@ function MatchesTab({ matches, onSave, onReorder, saving }: MatchesTabProps) {
                                     </div>
                                     <div className="mt-2">
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${match.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                                match.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                                    'bg-yellow-100 text-yellow-800'
+                                            match.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                                'bg-yellow-100 text-yellow-800'
                                             }`}>
                                             {match.status === 'completed' ? 'Completed' :
                                                 match.status === 'in_progress' ? 'In Progress' : 'Pending'}

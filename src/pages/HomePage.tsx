@@ -25,10 +25,21 @@ const VENUES = [
   'Batapola Badminton Court'
 ];
 
+const TOURNAMENT_TYPES = [
+  { value: 'men-single', label: "Men's Single" },
+  { value: 'women-single', label: "Women's Single" },
+  { value: 'men-double', label: "Men's Double" },
+  { value: 'women-double', label: "Women's Double" },
+  { value: 'mixed-double', label: "Mixed Double" },
+  { value: 'mixed-single', label: "Mixed Single" }
+];
+
+
 const HomePage = ({ user }: HomePageProps) => {
   const navigate = useNavigate();
   const [tournamentName, setTournamentName] = useState('');
   const [venue, setVenue] = useState(VENUES[0]);
+  const [tournamentType, setTournamentType] = useState(TOURNAMENT_TYPES[0].value);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [toast, setToast] = useState<{ title: string; description: string; variant: 'success' | 'error' } | null>(null);
   const [displayName, setDisplayName] = useState('User');
@@ -73,7 +84,8 @@ const HomePage = ({ user }: HomePageProps) => {
       .insert({
         name: tournamentName,
         created_by: user.id,
-        venue: venue
+        venue: venue,
+        type: tournamentType
       })
       .select()
       .single();
@@ -164,6 +176,23 @@ const HomePage = ({ user }: HomePageProps) => {
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tournament Type
+                  </label>
+                  <select
+                    value={tournamentType}
+                    onChange={(e) => setTournamentType(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    {TOURNAMENT_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <button
                   onClick={handleCreateTournament}
                   disabled={!tournamentName.trim()}
@@ -189,14 +218,23 @@ const HomePage = ({ user }: HomePageProps) => {
                           <h3 className="text-xl font-bold text-gray-900 break-words sm:truncate pr-2">{tournament.name}</h3>
 
                           {/* Desktop Status */}
-                          <span className={`hidden sm:inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium w-fit ${tournament.status === 'completed'
-                            ? 'bg-green-100 text-green-800'
-                            : tournament.status === 'in_progress'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-800'
-                            }`}>
-                            {tournament.status === 'in_progress' ? 'Live' : tournament.status.replace('_', ' ')}
-                          </span>
+                          <div className="hidden sm:flex items-center gap-2 mt-1">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium w-fit ${tournament.status === 'completed'
+                              ? 'bg-green-100 text-green-800'
+                              : tournament.status === 'in_progress'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-gray-100 text-gray-800'
+                              }`}>
+                              {tournament.status === 'in_progress' ? 'Live' : tournament.status.replace('_', ' ')}
+                            </span>
+                            {/* @ts-ignore */}
+                            {tournament.type && (
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                {/* @ts-ignore */}
+                                {tournament.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {/* Desktop Inspect Button */}
@@ -215,14 +253,23 @@ const HomePage = ({ user }: HomePageProps) => {
 
                       {/* Mobile Controls Row */}
                       <div className="flex sm:hidden items-center justify-between mt-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium w-fit ${tournament.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : tournament.status === 'in_progress'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-gray-100 text-gray-800'
-                          }`}>
-                          {tournament.status === 'in_progress' ? 'Live' : tournament.status.replace('_', ' ')}
-                        </span>
+                        <div className="flex gap-2">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium w-fit ${tournament.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : tournament.status === 'in_progress'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-800'
+                            }`}>
+                            {tournament.status === 'in_progress' ? 'Live' : tournament.status.replace('_', ' ')}
+                          </span>
+                          {/* @ts-ignore */}
+                          {tournament.type && (
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              {/* @ts-ignore */}
+                              {tournament.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </span>
+                          )}
+                        </div>
 
                         <button
                           onClick={(e) => {

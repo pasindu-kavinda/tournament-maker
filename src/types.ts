@@ -8,6 +8,14 @@ export interface Team {
   leadPoints: number;
 }
 
+export type TournamentType =
+  | 'men-single'
+  | 'women-single'
+  | 'men-double'
+  | 'women-double'
+  | 'mixed-double'
+  | 'mixed-single';
+
 export interface Match {
   id: string;
   teams: [Team | null, Team | null];

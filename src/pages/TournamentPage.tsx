@@ -106,60 +106,60 @@ function TournamentPage({ user }: TournamentPageProps) {
       }
 
       if (tournamentData) {
-      setTournament(tournamentData);
-      setIsCreator(tournamentData.created_by === user.id);
+        setTournament(tournamentData);
+        setIsCreator(tournamentData.created_by === user.id);
 
-      // Load teams
-      const { data: teamsData } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('tournament_id', tournamentId)
-        .order('created_at', { ascending: true });
+        // Load teams
+        const { data: teamsData } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('tournament_id', tournamentId)
+          .order('created_at', { ascending: true });
 
-      if (teamsData) {
-        // Transform database column names to camelCase
-        const transformedTeams = teamsData.map(team => ({
-          ...team,
-          leadPoints: team.lead_points ?? 0,
-          matchesPlayed: team.matches_played ?? 0
-        }));
-        setTeams(transformedTeams);
-      }
+        if (teamsData) {
+          // Transform database column names to camelCase
+          const transformedTeams = teamsData.map(team => ({
+            ...team,
+            leadPoints: team.lead_points ?? 0,
+            matchesPlayed: team.matches_played ?? 0
+          }));
+          setTeams(transformedTeams);
+        }
 
-      const { data: matchesData } = await supabase
-        .from('matches')
-        .select(`
+        const { data: matchesData } = await supabase
+          .from('matches')
+          .select(`
           *,
           team1:teams!matches_team1_id_fkey(*),
           team2:teams!matches_team2_id_fkey(*)
         `)
-        .eq('tournament_id', tournamentId)
-        .order('match_number', { ascending: true });
+          .eq('tournament_id', tournamentId)
+          .order('match_number', { ascending: true });
 
-      if (matchesData) {
-        const formattedMatches = matchesData.map(match => ({
-          ...match,
-          teams: [match.team1, match.team2],
-          scores: [match.team1_score, match.team2_score],
-          isCompleted: match.is_completed,
-          winner: match.winner_id,
-          pointDifference: match.point_difference,
-          matchNumber: match.match_number,
-          round: match.round
-        }));
+        if (matchesData) {
+          const formattedMatches = matchesData.map(match => ({
+            ...match,
+            teams: [match.team1, match.team2],
+            scores: [match.team1_score, match.team2_score],
+            isCompleted: match.is_completed,
+            winner: match.winner_id,
+            pointDifference: match.point_difference,
+            matchNumber: match.match_number,
+            round: match.round
+          }));
 
-        const regularMatches = formattedMatches.filter(m => m.round === 'regular');
-        const finalMatchData = formattedMatches.find(m => m.round === 'final');
+          const regularMatches = formattedMatches.filter(m => m.round === 'regular');
+          const finalMatchData = formattedMatches.find(m => m.round === 'final');
 
-        setMatches(regularMatches);
-        if (finalMatchData) {
-          setFinalMatch(finalMatchData);
-          if (finalMatchData.winner_id) {
-            const winningTeam = finalMatchData.teams.find((t: any) => t?.id === finalMatchData.winner_id);
-            if (winningTeam) setFinalTeam(winningTeam);
+          setMatches(regularMatches);
+          if (finalMatchData) {
+            setFinalMatch(finalMatchData);
+            if (finalMatchData.winner_id) {
+              const winningTeam = finalMatchData.teams.find((t: any) => t?.id === finalMatchData.winner_id);
+              if (winningTeam) setFinalTeam(winningTeam);
+            }
           }
         }
-      }
       }
       setLoading(false);
     } catch (error) {
@@ -299,7 +299,7 @@ function TournamentPage({ user }: TournamentPageProps) {
 
   const handleSubmitScores = async (matchId: string, scores: [number, number]) => {
     if (!tournamentId) return;
-    
+
     // Allow any logged-in user to submit scores (collaborative scoring)
     const match = matches.find(m => m.id === matchId) || finalMatch;
     if (!match) return;
@@ -578,8 +578,15 @@ function TournamentPage({ user }: TournamentPageProps) {
                 <span>Stats</span>
               </button>
             </div>
-            <div className="flex items-center justify-center flex-1">
-              <Trophy className="w-12 h-12 text-indigo-600" />
+            <div className="flex flex-col items-center justify-center flex-1">
+              <Trophy className="w-12 h-12 text-indigo-600 mb-1" />
+              {/* @ts-ignore */}
+              {tournament.type && (
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  {/* @ts-ignore */}
+                  {tournament.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-4 text-right">
               <UserDropdown displayName={displayName} />
@@ -603,6 +610,13 @@ function TournamentPage({ user }: TournamentPageProps) {
                 >
                   <TrendingUp className="w-6 h-6" />
                 </button>
+                {/* @ts-ignore */}
+              {tournament.type && (
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  {/* @ts-ignore */}
+                  {tournament.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+              )}
                 <UserDropdown displayName={displayName} />
               </div>
             </div>
@@ -683,7 +697,11 @@ function TournamentPage({ user }: TournamentPageProps) {
                     <h2 className="text-lg xs:text-xl font-semibold">Teams</h2>
                   </div>
 
-                  <TeamInput onAddTeam={handleAddTeam} />
+                  <TeamInput
+                    onAddTeam={handleAddTeam}
+                    // @ts-ignore
+                    maxMembers={tournament.type?.includes('single') ? 1 : tournament.type?.includes('double') ? 2 : undefined}
+                  />
 
                   <div className="mt-4 xs:mt-6 space-y-2 xs:space-y-3">
                     {teams.map(team => (

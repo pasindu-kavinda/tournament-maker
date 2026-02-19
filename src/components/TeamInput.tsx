@@ -5,9 +5,10 @@ import { supabase } from '@/lib/supabase';
 
 interface TeamInputProps {
   onAddTeam: (team: Team) => void;
+  maxMembers?: number;
 }
 
-function TeamInput({ onAddTeam }: TeamInputProps) {
+function TeamInput({ onAddTeam, maxMembers }: TeamInputProps) {
   const [teamName, setTeamName] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<UserProfile[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserProfile[]>([]);
@@ -27,9 +28,9 @@ function TeamInput({ onAddTeam }: TeamInputProps) {
         .from('users')
         .select('*')
         .order('full_name');
-      
+
       if (error) throw error;
-      
+
       if (users) {
         setAvailableUsers(users);
       }
@@ -46,6 +47,10 @@ function TeamInput({ onAddTeam }: TeamInputProps) {
     if (selectedUserId) {
       const user = availableUsers.find(u => u.id === selectedUserId);
       if (user && !selectedUsers.some(u => u.id === user.id)) {
+        if (maxMembers && selectedUsers.length >= maxMembers) {
+          // Should not happen as button is disabled
+          return;
+        }
         setSelectedUsers(prev => [...prev, user]);
         setSelectedUserId('');
       }
@@ -75,7 +80,8 @@ function TeamInput({ onAddTeam }: TeamInputProps) {
     }
   };
 
-  const isFormValid = teamName.trim().length > 0 && selectedUsers.length > 0;
+  const isFormValid = teamName.trim().length > 0 && selectedUsers.length > 0
+    && (!maxMembers || selectedUsers.length === maxMembers);
 
   if (loading) {
     return (
@@ -117,6 +123,11 @@ function TeamInput({ onAddTeam }: TeamInputProps) {
           placeholder="Enter team name"
           required
         />
+        {maxMembers && (
+          <p className="text-xs text-gray-500 mt-1">
+            Required members: {selectedUsers.length}/{maxMembers}
+          </p>
+        )}
       </div>
 
       <div>
@@ -143,7 +154,7 @@ function TeamInput({ onAddTeam }: TeamInputProps) {
           <button
             type="button"
             onClick={handleAddMember}
-            disabled={!selectedUserId}
+            disabled={!selectedUserId || (!!maxMembers && selectedUsers.length >= maxMembers)}
             className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-5 h-5" />
