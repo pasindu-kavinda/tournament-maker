@@ -49,6 +49,8 @@ const HomePage = ({ user }: HomePageProps) => {
     loadUserName();
   }, []);
 
+
+
   const showToast = (title: string, description: string, variant: 'success' | 'error') => {
     setToast({ title, description, variant });
     setTimeout(() => setToast(null), 5000);

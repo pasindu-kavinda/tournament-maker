@@ -42,6 +42,7 @@ function StatsPage({ user }: StatsPageProps) {
     const [activeTab, setActiveTab] = useState<'players' | 'duos' | 'teams'>('players');
     const [loadingTab, setLoadingTab] = useState<string | null>(null);
     const [dateFilter, setDateFilter] = useState<'all' | 'thisYear' | 'lastYear' | 'thisMonth' | 'lastMonth'>('all');
+    const [typeFilter, setTypeFilter] = useState<string>('all');
 
     const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
     const [duoStats, setDuoStats] = useState<DuoStats[]>([]);
@@ -53,6 +54,16 @@ function StatsPage({ user }: StatsPageProps) {
     const [teamStatsLoaded, setTeamStatsLoaded] = useState(false);
 
     const [displayName, setDisplayName] = useState('User');
+
+    const TOURNAMENT_TYPES = [
+        { value: 'all', label: 'All Types' },
+        { value: 'men-single', label: "Men's Single" },
+        { value: 'women-single', label: "Women's Single" },
+        { value: 'men-double', label: "Men's Double" },
+        { value: 'women-double', label: "Women's Double" },
+        { value: 'mixed-double', label: "Mixed Double" },
+        { value: 'mixed-single', label: "Mixed Single" }
+    ];
 
     useEffect(() => {
         loadUserName();
@@ -143,9 +154,9 @@ function StatsPage({ user }: StatsPageProps) {
     };
 
     useEffect(() => {
-        // Force reload when date filter changes
+        // Force reload when date filter or type filter changes
         loadTabDataForced(activeTab);
-    }, [activeTab, dateFilter]);
+    }, [activeTab, dateFilter, typeFilter]);
 
     const loadTabDataForced = async (tab: 'players' | 'duos' | 'teams') => {
         // Force load regardless of cache
@@ -186,7 +197,7 @@ function StatsPage({ user }: StatsPageProps) {
         *,
         team1:teams!matches_team1_id_fkey(*),
         team2:teams!matches_team2_id_fkey(*),
-        tournaments!inner(created_at)
+        tournaments!inner(created_at, type)
       `)
             .eq('is_completed', true);
 
@@ -196,6 +207,10 @@ function StatsPage({ user }: StatsPageProps) {
                 .lte('tournaments.created_at', endDate.toISOString());
         }
 
+        if (typeFilter !== 'all') {
+            matchesQuery = matchesQuery.eq('tournaments.type', typeFilter);
+        }
+
         const { data: allMatches } = await matchesQuery;
 
         if (!allMatches || allMatches.length === 0) {
@@ -203,14 +218,18 @@ function StatsPage({ user }: StatsPageProps) {
             return;
         }
 
-        // Collect all unique player IDs
+        // Collect all unique player IDs and debug types
         const allPlayerIds = new Set<string>();
+
+
         for (const match of allMatches) {
             const team1Members = match.team1?.members || [];
-            const team2Members = match.team2?.members || [];
             team1Members.forEach((id: string) => allPlayerIds.add(id));
-            team2Members.forEach((id: string) => allPlayerIds.add(id));
         }
+
+
+
+
 
         // Fetch all user data in ONE query
         const { data: allUsers } = await supabase
@@ -308,7 +327,7 @@ function StatsPage({ user }: StatsPageProps) {
         *,
         team1:teams!matches_team1_id_fkey(*),
         team2:teams!matches_team2_id_fkey(*),
-        tournaments!inner(created_at)
+        tournaments!inner(created_at, type)
       `)
             .eq('is_completed', true);
 
@@ -414,12 +433,16 @@ function StatsPage({ user }: StatsPageProps) {
         // Get all teams across all tournaments with date filtering
         let teamsQuery = supabase
             .from('teams')
-            .select('*, tournaments!inner(created_at)');
+            .select('*, tournaments!inner(created_at, type)');
 
         if (startDate) {
             teamsQuery = teamsQuery
                 .gte('tournaments.created_at', startDate.toISOString())
                 .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        if (typeFilter !== 'all') {
+            teamsQuery = teamsQuery.eq('tournaments.type', typeFilter);
         }
 
         const { data: allTeams } = await teamsQuery;
@@ -459,7 +482,7 @@ function StatsPage({ user }: StatsPageProps) {
         *,
         team1:teams!matches_team1_id_fkey(*),
         team2:teams!matches_team2_id_fkey(*),
-        tournaments!inner(created_at)
+        tournaments!inner(created_at, type)
       `)
             .eq('round', 'final')
             .eq('is_completed', true);
@@ -468,6 +491,10 @@ function StatsPage({ user }: StatsPageProps) {
             finalMatchesQuery = finalMatchesQuery
                 .gte('tournaments.created_at', startDate.toISOString())
                 .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        if (typeFilter !== 'all') {
+            finalMatchesQuery = finalMatchesQuery.eq('tournaments.type', typeFilter);
         }
 
         const { data: finalMatches } = await finalMatchesQuery;
@@ -577,7 +604,25 @@ function StatsPage({ user }: StatsPageProps) {
                             Last Month
                         </button>
                     </div>
+
+                    {/* Type Filter */}
+                    <div className="flex items-center justify-center gap-2 mt-4">
+                        <Filter className="w-4 h-4 text-gray-600" />
+                        <select
+                            value={typeFilter}
+                            onChange={(e) => setTypeFilter(e.target.value)}
+                            className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            {TOURNAMENT_TYPES.map((type) => (
+                                <option key={type.value} value={type.value}>
+                                    {type.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </header>
+
+
 
                 {/* Tabs */}
                 <div className="flex max-sm:flex-col gap-4 mb-8 justify-center">
@@ -798,7 +843,7 @@ function StatsPage({ user }: StatsPageProps) {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Award, Medal, ArrowLeft, User as UserIcon, Download, Filter, Crown, Flame, Target } from 'lucide-react';
+import { Trophy, Award, Medal, ArrowLeft, User as UserIcon, Download, Filter, Crown, Flame, Target, Tag } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import UserDropdown from '@/components/UserDropdown';
@@ -32,7 +32,18 @@ function AchievementsStatsPage({ user }: AchievementsStatsPageProps) {
     const [activeTab, setActiveTab] = useState<'achievements' | 'records'>('achievements');
     const [loadingTab, setLoadingTab] = useState<string | null>(null);
     const [dateFilter, setDateFilter] = useState<'all' | 'thisYear' | 'lastYear' | 'thisMonth' | 'lastMonth'>('all');
+    const [typeFilter, setTypeFilter] = useState<string>('all');
     const [displayName, setDisplayName] = useState('User');
+
+    const TOURNAMENT_TYPES = [
+        { value: 'all', label: 'All Types' },
+        { value: 'men-single', label: "Men's Single" },
+        { value: 'women-single', label: "Women's Single" },
+        { value: 'men-double', label: "Men's Double" },
+        { value: 'women-double', label: "Women's Double" },
+        { value: 'mixed-double', label: "Mixed Double" },
+        { value: 'mixed-single', label: "Mixed Single" }
+    ];
 
     useEffect(() => {
         loadUserName();
@@ -121,7 +132,7 @@ function AchievementsStatsPage({ user }: AchievementsStatsPageProps) {
 
     // Load Achievement Stats
     const loadAchievementStats = async () => {
-        if (achievementStatsLoaded && dateFilter === 'all') return;
+        if (achievementStatsLoaded && dateFilter === 'all' && typeFilter === 'all') return;
 
         setLoadingTab('achievements');
 
@@ -133,7 +144,7 @@ function AchievementsStatsPage({ user }: AchievementsStatsPageProps) {
 
     // Load Record Stats  
     const loadRecordStats = async () => {
-        if (recordStatsLoaded && dateFilter === 'all') return;
+        if (recordStatsLoaded && dateFilter === 'all' && typeFilter === 'all') return;
 
         setLoadingTab('records');
 
@@ -149,7 +160,7 @@ function AchievementsStatsPage({ user }: AchievementsStatsPageProps) {
         } else if (activeTab === 'records') {
             loadRecordStats();
         }
-    }, [activeTab, dateFilter]);
+    }, [activeTab, dateFilter, typeFilter]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-8">
@@ -200,6 +211,24 @@ function AchievementsStatsPage({ user }: AchievementsStatsPageProps) {
                                 </button>
                             ))}
                         </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 flex-wrap mt-4 pt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-2">
+                            <Tag className="w-5 h-5 text-gray-600" />
+                            <span className="font-semibold text-gray-700">Tournament Type:</span>
+                        </div>
+                        <select
+                            value={typeFilter}
+                            onChange={(e) => setTypeFilter(e.target.value)}
+                            className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            {TOURNAMENT_TYPES.map((type) => (
+                                <option key={type.value} value={type.value}>
+                                    {type.label}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 

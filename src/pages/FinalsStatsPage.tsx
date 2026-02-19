@@ -41,7 +41,18 @@ function StatsPage({ user }: StatsPageProps) {
     const [activeTab, setActiveTab] = useState<'players' | 'duos'>('players');
     const [loadingTab, setLoadingTab] = useState<string | null>(null);
     const [dateFilter, setDateFilter] = useState<'all' | 'thisYear' | 'lastYear' | 'thisMonth' | 'lastMonth'>('all');
+    const [typeFilter, setTypeFilter] = useState<string>('all');
     const [sortBy, setSortBy] = useState<'titles' | 'appearances'>('titles');
+
+    const TOURNAMENT_TYPES = [
+        { value: 'all', label: 'All Types' },
+        { value: 'men-single', label: "Men's Single" },
+        { value: 'women-single', label: "Women's Single" },
+        { value: 'men-double', label: "Men's Double" },
+        { value: 'women-double', label: "Women's Double" },
+        { value: 'mixed-double', label: "Mixed Double" },
+        { value: 'mixed-single', label: "Mixed Single" }
+    ];
 
     const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
     const [duoStats, setDuoStats] = useState<DuoStats[]>([]);
@@ -132,7 +143,7 @@ function StatsPage({ user }: StatsPageProps) {
     useEffect(() => {
         // Force reload when date filter or sort changes
         loadTabDataForced(activeTab);
-    }, [activeTab, dateFilter, sortBy]);
+    }, [activeTab, dateFilter, typeFilter, sortBy]);
 
     const loadTabDataForced = async (tab: 'players' | 'duos') => {
         setLoadingTab(tab);
@@ -157,7 +168,7 @@ function StatsPage({ user }: StatsPageProps) {
                 *,
                 team1:teams!matches_team1_id_fkey(*),
                 team2:teams!matches_team2_id_fkey(*),
-                tournaments!inner(created_at)
+                tournaments!inner(created_at, type)
             `)
             .eq('round', 'final')
             .eq('is_completed', true);
@@ -166,6 +177,10 @@ function StatsPage({ user }: StatsPageProps) {
             matchesQuery = matchesQuery
                 .gte('tournaments.created_at', startDate.toISOString())
                 .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        if (typeFilter !== 'all') {
+            matchesQuery = matchesQuery.eq('tournaments.type', typeFilter);
         }
 
         const { data: finalMatches } = await matchesQuery;
@@ -187,12 +202,16 @@ function StatsPage({ user }: StatsPageProps) {
         // Fetch all teams to count tournaments played for these players
         let teamsQuery = supabase
             .from('teams')
-            .select('members, tournaments!inner(created_at)');
+            .select('members, tournaments!inner(created_at, type)');
 
         if (startDate) {
             teamsQuery = teamsQuery
                 .gte('tournaments.created_at', startDate.toISOString())
                 .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        if (typeFilter !== 'all') {
+            teamsQuery = teamsQuery.eq('tournaments.type', typeFilter);
         }
 
         const { data: allTeams } = await teamsQuery;
@@ -312,7 +331,7 @@ function StatsPage({ user }: StatsPageProps) {
                 *,
                 team1:teams!matches_team1_id_fkey(*),
                 team2:teams!matches_team2_id_fkey(*),
-                tournaments!inner(created_at)
+                tournaments!inner(created_at, type)
             `)
             .eq('round', 'final')
             .eq('is_completed', true);
@@ -321,6 +340,10 @@ function StatsPage({ user }: StatsPageProps) {
             matchesQuery = matchesQuery
                 .gte('tournaments.created_at', startDate.toISOString())
                 .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        if (typeFilter !== 'all') {
+            matchesQuery = matchesQuery.eq('tournaments.type', typeFilter);
         }
 
         const { data: finalMatches } = await matchesQuery;
@@ -350,12 +373,16 @@ function StatsPage({ user }: StatsPageProps) {
         // Fetch all teams to count tournaments played for these duos
         let teamsQuery = supabase
             .from('teams')
-            .select('members, tournaments!inner(created_at)');
+            .select('members, tournaments!inner(created_at, type)');
 
         if (startDate) {
             teamsQuery = teamsQuery
                 .gte('tournaments.created_at', startDate.toISOString())
                 .lte('tournaments.created_at', endDate.toISOString());
+        }
+
+        if (typeFilter !== 'all') {
+            teamsQuery = teamsQuery.eq('tournaments.type', typeFilter);
         }
 
         const { data: allTeams } = await teamsQuery;
@@ -509,13 +536,28 @@ function StatsPage({ user }: StatsPageProps) {
                             ))}
                         </div>
 
+                        {/* Type Filter */}
+                        <div className="flex items-center justify-center gap-2">
+                            <select
+                                value={typeFilter}
+                                onChange={(e) => setTypeFilter(e.target.value)}
+                                className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                {TOURNAMENT_TYPES.map((type) => (
+                                    <option key={type.value} value={type.value}>
+                                        {type.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         {/* Metric Toggle */}
                         <div className="flex bg-gray-200 p-1 rounded-lg">
                             <button
                                 onClick={() => setSortBy('titles')}
                                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${sortBy === 'titles'
-                                        ? 'bg-white text-indigo-700 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-800'
+                                    ? 'bg-white text-indigo-700 shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-800'
                                     }`}
                             >
                                 Final Wins
@@ -523,8 +565,8 @@ function StatsPage({ user }: StatsPageProps) {
                             <button
                                 onClick={() => setSortBy('appearances')}
                                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${sortBy === 'appearances'
-                                        ? 'bg-white text-indigo-700 shadow-sm'
-                                        : 'text-gray-600 hover:text-gray-800'
+                                    ? 'bg-white text-indigo-700 shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-800'
                                     }`}
                             >
                                 Final Appearances
