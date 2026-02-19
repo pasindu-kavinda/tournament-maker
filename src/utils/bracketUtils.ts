@@ -96,20 +96,36 @@ export function generateRoundRobinMatches(teams: Team[]): Match[] {
   return matches;
 }
 
-export function calculateTeamStats(matches: Match[]): Team[] {
+export function calculateTeamStats(matches: Match[], allTeams?: Team[]): Team[] {
   const teamStats = new Map<string, Team>();
 
-  // Initialize team stats
+  // Initialize from all teams if provided
+  if (allTeams) {
+    allTeams.forEach(team => {
+      teamStats.set(team.id, {
+        ...team,
+        points: 0,
+        wins: 0,
+        matchesPlayed: 0,
+        leadPoints: 0
+      });
+    });
+  }
+
+  // Initialize or update from matches
   matches.forEach(match => {
     match.teams.forEach(team => {
-      if (team && !teamStats.has(team.id)) {
-        teamStats.set(team.id, {
-          ...team,
-          points: 0,
-          wins: 0,
-          matchesPlayed: 0,
-          leadPoints: 0
-        });
+      if (team) {
+        if (!teamStats.has(team.id)) {
+          // Fallback initialization if team not in allTeams
+          teamStats.set(team.id, {
+            ...team,
+            points: 0,
+            wins: 0,
+            matchesPlayed: 0,
+            leadPoints: 0
+          });
+        }
       }
     });
   });
@@ -179,4 +195,55 @@ export function generateFinalMatch(topTeams: Team[]): Match {
     round: 'final',
     matchNumber: 1
   };
+}
+
+export function sortTeamsByStats(teams: Team[]): Team[] {
+  return [...teams].sort((a, b) => {
+    // Sort primarily by wins
+    if (b.wins !== a.wins) {
+      return b.wins - a.wins;
+    }
+    // If wins are equal, sort by lead points
+    if (b.leadPoints !== a.leadPoints) {
+      return b.leadPoints - a.leadPoints;
+    }
+    // If lead points are equal, sort by total points
+    if (b.points !== a.points) {
+      return b.points - a.points;
+    }
+    // If everything is equal, sort by matches played (fewer is better)
+    return a.matchesPlayed - b.matchesPlayed;
+  });
+}
+
+export function generateCrossedSemiFinals(groupATeams: Team[], groupBTeams: Team[], startMatchNum: number): Match[] {
+  // Assumes teams are already sorted by rank (index 0 is 1st place)
+  const a1 = groupATeams[0];
+  const a2 = groupATeams[1];
+  const b1 = groupBTeams[0];
+  const b2 = groupBTeams[1];
+
+  if (!a1 || !a2 || !b1 || !b2) return [];
+
+  const match1: Match = {
+    id: crypto.randomUUID(),
+    teams: [a1, b2],
+    scores: [null, null],
+    isCompleted: false,
+    round: 'semi-final',
+    matchNumber: startMatchNum,
+    groupId: undefined
+  };
+
+  const match2: Match = {
+    id: crypto.randomUUID(),
+    teams: [b1, a2],
+    scores: [null, null],
+    isCompleted: false,
+    round: 'semi-final',
+    matchNumber: startMatchNum + 1,
+    groupId: undefined
+  };
+
+  return [match1, match2];
 }

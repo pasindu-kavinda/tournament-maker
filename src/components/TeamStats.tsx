@@ -39,12 +39,17 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId, title = 
               .order('created_at', { ascending: true });
 
             if (updatedTeams) {
-              // Transform database column names to camelCase
-              const transformedTeams = updatedTeams.map(team => ({
-                ...team,
-                leadPoints: team.lead_points ?? 0,
-                matchesPlayed: team.matches_played ?? 0
-              }));
+              // Get current team IDs from props to maintain filter
+              const currentTeamIds = new Set(teams.map(t => t.id));
+
+              // Transform database column names to camelCase and filter
+              const transformedTeams = updatedTeams
+                .filter(team => currentTeamIds.has(team.id))
+                .map(team => ({
+                  ...team,
+                  leadPoints: team.lead_points ?? 0,
+                  matchesPlayed: team.matches_played ?? 0
+                }));
               setRealtimeTeams(transformedTeams);
             }
           }
@@ -103,7 +108,7 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId, title = 
     <div className="bg-white rounded-xl shadow-lg p-4 xs:p-6">
       <div className="flex items-center gap-2 mb-4 xs:mb-6">
         <Trophy className="w-5 h-5 text-indigo-600" />
-        <h2 className="text-lg xs:text-xl font-semibold">Team Rankings</h2>
+        <h2 className="text-lg xs:text-xl font-semibold">{title}</h2>
       </div>
 
       <div className="space-y-3 xs:space-y-4">

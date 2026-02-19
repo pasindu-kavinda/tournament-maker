@@ -6,9 +6,11 @@ import { supabase } from '@/lib/supabase';
 interface TeamInputProps {
   onAddTeam: (team: Team) => void;
   maxMembers?: number;
+  structure?: string;
 }
 
-function TeamInput({ onAddTeam, maxMembers }: TeamInputProps) {
+function TeamInput({ onAddTeam, maxMembers, structure }: TeamInputProps) {
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('A');
   const [teamName, setTeamName] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<UserProfile[]>([]);
   const [availableUsers, setAvailableUsers] = useState<UserProfile[]>([]);
@@ -48,7 +50,6 @@ function TeamInput({ onAddTeam, maxMembers }: TeamInputProps) {
       const user = availableUsers.find(u => u.id === selectedUserId);
       if (user && !selectedUsers.some(u => u.id === user.id)) {
         if (maxMembers && selectedUsers.length >= maxMembers) {
-          // Should not happen as button is disabled
           return;
         }
         setSelectedUsers(prev => [...prev, user]);
@@ -71,7 +72,8 @@ function TeamInput({ onAddTeam, maxMembers }: TeamInputProps) {
         points: 0,
         wins: 0,
         matchesPlayed: 0,
-        leadPoints: 0
+        leadPoints: 0,
+        groupId: structure === 'groups' ? selectedGroupId : undefined
       };
 
       onAddTeam(newTeam);
@@ -129,6 +131,40 @@ function TeamInput({ onAddTeam, maxMembers }: TeamInputProps) {
           </p>
         )}
       </div>
+
+      {structure === 'groups' && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Assign to Group
+          </label>
+          <div className="flex gap-4">
+            <label className={`flex-1 cursor-pointer border rounded-lg p-3 flex items-center justify-center gap-2 transition ${selectedGroupId === 'A' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-white border-gray-200 hover:bg-gray-50'
+              }`}>
+              <input
+                type="radio"
+                name="group"
+                value="A"
+                checked={selectedGroupId === 'A'}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+                className="sr-only"
+              />
+              Group A
+            </label>
+            <label className={`flex-1 cursor-pointer border rounded-lg p-3 flex items-center justify-center gap-2 transition ${selectedGroupId === 'B' ? 'bg-indigo-50 border-indigo-500 text-indigo-700 font-bold' : 'bg-white border-gray-200 hover:bg-gray-50'
+              }`}>
+              <input
+                type="radio"
+                name="group"
+                value="B"
+                checked={selectedGroupId === 'B'}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+                className="sr-only"
+              />
+              Group B
+            </label>
+          </div>
+        </div>
+      )}
 
       <div>
         <label htmlFor="members" className="block text-sm font-medium text-gray-700 mb-1">

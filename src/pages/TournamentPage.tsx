@@ -16,6 +16,8 @@ import {
   calculateTeamStats,
   getTopTeams,
   generateFinalMatch,
+  sortTeamsByStats,
+  generateCrossedSemiFinals,
 } from '../utils/bracketUtils';
 import FinalMatchCard from '../components/FinalMatchCard';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
@@ -146,13 +148,14 @@ function TournamentPage({ user }: TournamentPageProps) {
             winner: match.winner_id,
             pointDifference: match.point_difference,
             matchNumber: match.match_number,
-            round: match.round
+            round: match.round,
+            groupId: match.group_id
           }));
 
-          const regularMatches = formattedMatches.filter(m => m.round === 'regular');
+          const regularAndSemiMatches = formattedMatches.filter(m => m.round === 'regular' || m.round === 'semi-final');
           const finalMatchData = formattedMatches.find(m => m.round === 'final');
 
-          setMatches(regularMatches);
+          setMatches(regularAndSemiMatches);
           if (finalMatchData) {
             setFinalMatch(finalMatchData);
             if (finalMatchData.winner_id) {
@@ -182,7 +185,8 @@ function TournamentPage({ user }: TournamentPageProps) {
         points: 0,
         wins: 0,
         matches_played: 0,
-        lead_points: 0
+        lead_points: 0,
+        group_id: team.groupId
       })
       .select()
       .single();
@@ -212,6 +216,24 @@ function TournamentPage({ user }: TournamentPageProps) {
     setTeams(teams.filter(team => team.id !== id));
     setMatches([]);
     setFinalMatch(null);
+  };
+
+  const handleUpdateTeamGroup = async (teamId: string, groupId: string) => {
+    if (!isCreator && !isAdmin) return;
+
+    // Optimistic update
+    setTeams(teams.map(t => t.id === teamId ? { ...t, groupId } : t));
+
+    const { error } = await supabase
+      .from('teams')
+      .update({ group_id: groupId })
+      .eq('id', teamId);
+
+    if (error) {
+      console.error('Error updating team group:', error);
+      // Revert on error
+      loadTournament();
+    }
   };
 
   const handleGenerateMatches = async () => {
@@ -270,10 +292,15 @@ function TournamentPage({ user }: TournamentPageProps) {
   };
 
   const updateTeamStats = async (updatedMatches: Match[]) => {
-    const stats = calculateTeamStats(updatedMatches);
+    // Pass current 'teams' state to ensure all teams are included in calculation
+    const stats = calculateTeamStats(updatedMatches, teams);
 
-    for (const team of stats) {
-      await supabase
+    // Using UPSERT might be better if supported, but for now sequential update is fine 
+    // as long as we catch errors and don't block UI too much.
+    // Ideally we should use a single batch update if Supabase supports it well for different rows, 
+    // but iteration is acceptable for small team counts.
+    const updates = stats.map(team =>
+      supabase
         .from('teams')
         .update({
           points: team.points,
@@ -281,8 +308,11 @@ function TournamentPage({ user }: TournamentPageProps) {
           matches_played: team.matchesPlayed,
           lead_points: team.leadPoints
         })
-        .eq('id', team.id);
-    }
+        .eq('id', team.id)
+    );
+
+    await Promise.all(updates);
+
 
     const { data: teamsData } = await supabase
       .from('teams')
@@ -295,7 +325,8 @@ function TournamentPage({ user }: TournamentPageProps) {
       const transformedTeams = teamsData.map(team => ({
         ...team,
         leadPoints: team.lead_points ?? 0,
-        matchesPlayed: team.matches_played ?? 0
+        matchesPlayed: team.matches_played ?? 0,
+        groupId: team.group_id // Ensure groupId is mapped
       }));
       setTeams(transformedTeams);
     }
@@ -357,7 +388,7 @@ function TournamentPage({ user }: TournamentPageProps) {
       }
     }
 
-    if (match.round === 'regular') {
+    if (match.round === 'regular' || match.round === 'semi-final') {
       const updatedMatches = matches.map(m =>
         m.id === matchId
           ? {
@@ -375,7 +406,9 @@ function TournamentPage({ user }: TournamentPageProps) {
 
       const allRegularMatchesCompleted = updatedMatches.every(m => m.isCompleted);
 
-      if (allRegularMatchesCompleted && !finalMatch) {
+      // Only auto-generate final for non-group structures
+      // Groups structure requires manual generation of semi-finals first
+      if (allRegularMatchesCompleted && !finalMatch && tournament.structure !== 'groups') {
         const { data: freshTeamsData } = await supabase
           .from('teams')
           .select('*')
@@ -462,6 +495,12 @@ function TournamentPage({ user }: TournamentPageProps) {
     try {
       setIsProcessing(true);
 
+      // Fetch fresh match data to check progress
+      const { data: currentMatches } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', tournamentId);
+
       // Fetch fresh team data with transformed columns
       const { data: freshTeamsData } = await supabase
         .from('teams')
@@ -477,54 +516,122 @@ function TournamentPage({ user }: TournamentPageProps) {
           groupId: team.group_id
         }));
 
-        const topTeams = getTopTeams(transformedTeams, 2);
-        const newFinalMatch = generateFinalMatch(topTeams);
+        if (tournament.structure === 'groups') {
+          // Check if semi-finals exist
+          const semiFinals = currentMatches?.filter(m => m.round === 'semi-final') || [];
 
-        const { data: createdFinalMatch } = await supabase
-          .from('matches')
-          .insert({
-            tournament_id: tournamentId,
-            team1_id: newFinalMatch.teams[0]?.id,
-            team2_id: newFinalMatch.teams[1]?.id,
-            match_number: 1,
-            round: 'final',
-            is_completed: false
-          })
-          .select(`
-          *,
-          team1:teams!matches_team1_id_fkey(*),
-          team2:teams!matches_team2_id_fkey(*)
-        `)
-          .single();
+          if (semiFinals.length === 0) {
+            // Generate Semi-Finals
+            const groupA = sortTeamsByStats(transformedTeams.filter(t => t.groupId === 'A'));
+            const groupB = sortTeamsByStats(transformedTeams.filter(t => t.groupId === 'B'));
 
-        if (createdFinalMatch) {
-          const formattedFinalMatch = {
-            ...createdFinalMatch,
-            teams: [createdFinalMatch.team1, createdFinalMatch.team2],
-            scores: [createdFinalMatch.team1_score, createdFinalMatch.team2_score],
-            isCompleted: createdFinalMatch.is_completed,
-            winner: createdFinalMatch.winner_id,
-            pointDifference: createdFinalMatch.point_difference,
-            matchNumber: createdFinalMatch.match_number,
-            round: createdFinalMatch.round,
-            groupId: createdFinalMatch.group_id,
-            nextMatchId: createdFinalMatch.next_match_id
-          };
+            console.log('Group A Teams:', groupA.length, groupA);
+            console.log('Group B Teams:', groupB.length, groupB);
 
-          setFinalMatch(formattedFinalMatch);
+            if (groupA.length < 2 || groupB.length < 2) {
+              alert('Need at least 2 teams in each group to generate semi-finals.');
+              return;
+            }
 
-          showPushNotification(
-            'Final Match Created! 🏆',
-            `${topTeams[0]?.name} vs ${topTeams[1]?.name}`,
-            tournamentId
-          );
+            // Get last match number to continue numbering
+            const lastMatchNum = Math.max(...(currentMatches?.map(m => m.match_number) || [0]));
+            const newSemiFinals = generateCrossedSemiFinals(groupA, groupB, lastMatchNum + 1);
+
+            const { error } = await supabase
+              .from('matches')
+              .insert(newSemiFinals.map(m => ({
+                tournament_id: tournamentId,
+                team1_id: m.teams[0]?.id,
+                team2_id: m.teams[1]?.id,
+                match_number: m.matchNumber,
+                round: 'semi-final',
+                is_completed: false,
+                group_id: null
+              })));
+
+            if (error) throw error;
+
+            showPushNotification('Semi-Finals Created! ⚔️', 'Knockout stage begins!', tournamentId);
+            loadTournament(); // Reload to show new matches
+
+          } else {
+            // Check if semi-finals are completed
+            const allSemisCompleted = semiFinals.every(m => m.is_completed && m.winner_id);
+            if (!allSemisCompleted) {
+              alert('Please complete all semi-final matches first.');
+              return;
+            }
+
+            // Generate Final from Semi-Final winners
+            const winners = semiFinals
+              .sort((a, b) => a.match_number - b.match_number)
+              .map(m => transformedTeams.find(t => t.id === m.winner_id))
+              .filter(t => t !== undefined) as Team[];
+
+            if (winners.length !== 2) {
+              alert('Error determining semi-final winners.');
+              return;
+            }
+
+            generateAndSaveFinal(winners, Math.max(...(currentMatches?.map(m => m.match_number) || [0])) + 1);
+          }
+        } else {
+          // Default Round Robin / Knockout Final generation (Top 2 teams)
+          const topTeams = getTopTeams(transformedTeams, 2);
+          generateAndSaveFinal(topTeams, 1); // 1 is placeholder if no previous matches, but usually round robin has matches
         }
       }
     } catch (error) {
-      console.error('Error generating final match:', error);
-      alert('Failed to generate final match. Please try again.');
+      console.error('Error generating next stage:', error);
+      alert(`Failed to generate next stage: ${(error as Error).message}`);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const generateAndSaveFinal = async (finalists: Team[], matchNum: number) => {
+    const newFinalMatch = generateFinalMatch(finalists);
+    // @ts-ignore
+    newFinalMatch.matchNumber = matchNum;
+
+    const { data: createdFinalMatch, error } = await supabase
+      .from('matches')
+      .insert({
+        tournament_id: tournamentId,
+        team1_id: newFinalMatch.teams[0]?.id,
+        team2_id: newFinalMatch.teams[1]?.id,
+        match_number: matchNum,
+        round: 'final',
+        is_completed: false
+      })
+      .select(`
+      *,
+      team1:teams!matches_team1_id_fkey(*),
+      team2:teams!matches_team2_id_fkey(*)
+    `)
+      .single();
+
+    if (createdFinalMatch) {
+      const formattedFinalMatch = {
+        ...createdFinalMatch,
+        teams: [createdFinalMatch.team1, createdFinalMatch.team2],
+        scores: [createdFinalMatch.team1_score, createdFinalMatch.team2_score],
+        isCompleted: createdFinalMatch.is_completed,
+        winner: createdFinalMatch.winner_id,
+        pointDifference: createdFinalMatch.point_difference,
+        matchNumber: createdFinalMatch.match_number,
+        round: createdFinalMatch.round,
+        groupId: createdFinalMatch.group_id,
+        nextMatchId: createdFinalMatch.next_match_id
+      };
+
+      setFinalMatch(formattedFinalMatch);
+
+      showPushNotification(
+        'Final Match Created! 🏆',
+        `${finalists[0]?.name} vs ${finalists[1]?.name}`,
+        tournamentId
+      );
     }
   };
 
@@ -708,6 +815,7 @@ function TournamentPage({ user }: TournamentPageProps) {
                     onAddTeam={handleAddTeam}
                     // @ts-ignore
                     maxMembers={tournament.type?.includes('single') ? 1 : tournament.type?.includes('double') ? 2 : undefined}
+                    structure={tournament.structure}
                   />
 
                   <div className="mt-4 xs:mt-6 space-y-2 xs:space-y-3">
@@ -719,9 +827,34 @@ function TournamentPage({ user }: TournamentPageProps) {
                             {teamMembers[team.id]?.map(user => user.full_name).join(', ')}
                           </p>
                         </div>
-                        <button onClick={() => handleRemoveTeam(team.id)} className="text-red-500 hover:text-red-700 p-1 flex-shrink-0">
-                          <Target className="w-4 h-4 xs:w-5 xs:h-5" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {/* @ts-ignore */}
+                          {tournament.structure === 'groups' && (
+                            <div className="flex bg-gray-200 rounded-lg p-1">
+                              <button
+                                onClick={() => handleUpdateTeamGroup(team.id, 'A')}
+                                className={`px-2 py-1 text-xs font-bold rounded ${team.groupId === 'A'
+                                  ? 'bg-indigo-600 text-white shadow-sm'
+                                  : 'text-gray-600 hover:bg-gray-300'
+                                  }`}
+                              >
+                                A
+                              </button>
+                              <button
+                                onClick={() => handleUpdateTeamGroup(team.id, 'B')}
+                                className={`px-2 py-1 text-xs font-bold rounded ${team.groupId === 'B'
+                                  ? 'bg-indigo-600 text-white shadow-sm'
+                                  : 'text-gray-600 hover:bg-gray-300'
+                                  }`}
+                              >
+                                B
+                              </button>
+                            </div>
+                          )}
+                          <button onClick={() => handleRemoveTeam(team.id)} className="text-red-500 hover:text-red-700 p-1 flex-shrink-0">
+                            <Target className="w-4 h-4 xs:w-5 xs:h-5" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -792,7 +925,11 @@ function TournamentPage({ user }: TournamentPageProps) {
                     ) : (
                       <>
                         <Trophy className="w-5 h-5" />
-                        <span>Generate Final Match</span>
+                        <span>
+                          {tournament.structure === 'groups' && !matches.some(m => m.round === 'semi-final')
+                            ? 'Generate Semi-Finals'
+                            : 'Generate Final Match'}
+                        </span>
                       </>
                     )}
                   </button>
@@ -801,6 +938,45 @@ function TournamentPage({ user }: TournamentPageProps) {
 
               {tournament.structure === 'groups' ? (
                 <>
+                  {/* Show Final Match if exists, first */}
+                  {finalMatch && (
+                    <div className="mb-8 border-b pb-8">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4 px-2 border-l-4 border-yellow-500">
+                        Championship
+                      </h3>
+                      <Bracket
+                        matches={[]}
+                        finalMatch={{
+                          ...finalMatch,
+                          tournamentStatus: tournament.status
+                        }}
+                        onSubmitScores={handleSubmitScores}
+                        canEdit={true}
+                      />
+                    </div>
+                  )}
+
+                  {/* Show Semi-Finals if they exist, second */}
+                  {matches.some(m => m.round === 'semi-final') && (
+                    <div className="mb-8 border-b pb-8">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4 px-2 border-l-4 border-purple-500">
+                        Semi-Finals
+                      </h3>
+                      <Bracket
+                        matches={matches
+                          .filter(m => m.round === 'semi-final')
+                          .map(match => ({
+                            ...match,
+                            tournamentStatus: tournament.status
+                          }))}
+                        finalMatch={null}
+                        onSubmitScores={handleSubmitScores}
+                        canEdit={true}
+                        title=""
+                      />
+                    </div>
+                  )}
+
                   {['A', 'B'].map(group => (
                     <div key={group} className="mb-8">
                       <h3 className="text-xl font-bold text-gray-800 mb-4 px-2 border-l-4 border-indigo-500">
@@ -816,26 +992,10 @@ function TournamentPage({ user }: TournamentPageProps) {
                         finalMatch={null}
                         onSubmitScores={handleSubmitScores}
                         canEdit={true}
+                        title=""
                       />
                     </div>
                   ))}
-                  {/* Show Final Match if exists, separate from groups */}
-                  {finalMatch && (
-                    <div className="mt-8 border-t pt-8">
-                      <h3 className="text-xl font-bold text-gray-800 mb-4 px-2 border-l-4 border-yellow-500">
-                        Championship
-                      </h3>
-                      <Bracket
-                        matches={[]}
-                        finalMatch={{
-                          ...finalMatch,
-                          tournamentStatus: tournament.status
-                        }}
-                        onSubmitScores={handleSubmitScores}
-                        canEdit={true}
-                      />
-                    </div>
-                  )}
                 </>
               ) : (
                 <Bracket
