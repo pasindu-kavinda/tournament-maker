@@ -1,4 +1,43 @@
-import { Team, Match } from '../types';
+import { Team, Match, TournamentStructure } from '../types';
+
+export function generateMatches(teams: Team[], structure: TournamentStructure = 'round-robin'): Match[] {
+  if (structure === 'groups') {
+    return generateGroupMatches(teams);
+  } else if (structure === 'knockout') {
+    return generateKnockoutMatches(teams);
+  } else {
+    return generateRoundRobinMatches(teams); // Default and fallback
+  }
+}
+
+function generateGroupMatches(teams: Team[]): Match[] {
+  const matches: Match[] = [];
+
+  // Split teams into two groups
+  const midPoint = Math.ceil(teams.length / 2);
+  const groupA = teams.slice(0, midPoint);
+  const groupB = teams.slice(midPoint);
+
+  // Helper to generate matches for a specific group
+  const generateForGroup = (groupTeams: Team[], groupId: string, startMatchNum: number) => {
+    const groupMatches = generateRoundRobinMatches(groupTeams);
+    return groupMatches.map(m => ({
+      ...m,
+      groupId,
+      matchNumber: m.matchNumber + startMatchNum - 1 // Adjust match numbers
+    }));
+  };
+
+  const matchesA = generateForGroup(groupA, 'A', 1);
+  const matchesB = generateForGroup(groupB, 'B', matchesA.length + 1);
+
+  return [...matchesA, ...matchesB];
+}
+
+function generateKnockoutMatches(teams: Team[]): Match[] {
+  // Placeholder for now, will implement in next step
+  return generateRoundRobinMatches(teams);
+}
 
 export function generateRoundRobinMatches(teams: Team[]): Match[] {
   const matches: Match[] = [];
@@ -86,7 +125,7 @@ export function calculateTeamStats(matches: Match[]): Team[] {
 
       statsA.matchesPlayed++;
       statsB.matchesPlayed++;
-      
+
       statsA.points += scoreA;
       statsB.points += scoreB;
 

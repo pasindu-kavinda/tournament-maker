@@ -8,9 +8,10 @@ interface TeamStatsProps {
   teams: Team[];
   tournamentStatus?: string;
   tournamentId?: string;
+  title?: string;
 }
 
-function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamStatsProps) {
+function TeamStats({ teams, tournamentStatus = 'pending', tournamentId, title = 'Team Rankings' }: TeamStatsProps) {
   const navigate = useNavigate();
   const [teamMembers, setTeamMembers] = useState<{ [key: string]: UserProfile[] }>({});
   const [loading, setLoading] = useState(true);
@@ -36,7 +37,7 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamSt
               .select('*')
               .eq('tournament_id', tournamentId)
               .order('created_at', { ascending: true });
-            
+
             if (updatedTeams) {
               // Transform database column names to camelCase
               const transformedTeams = updatedTeams.map(team => ({
@@ -62,18 +63,18 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamSt
 
   const loadTeamMembers = async () => {
     const members: { [key: string]: UserProfile[] } = {};
-    
+
     for (const team of teams) {
       const { data: users } = await supabase
         .from('users')
         .select('*')
         .in('id', team.members);
-      
+
       if (users) {
         members[team.id] = users;
       }
     }
-    
+
     setTeamMembers(members);
     setLoading(false);
   };
@@ -107,11 +108,10 @@ function TeamStats({ teams, tournamentStatus = 'pending', tournamentId }: TeamSt
 
       <div className="space-y-3 xs:space-y-4">
         {sortedTeams.map((team, index) => (
-          <div 
+          <div
             key={team.id}
-            className={`p-3 xs:p-4 rounded-lg border ${
-              index < 2 ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-gray-50'
-            }`}
+            className={`p-3 xs:p-4 rounded-lg border ${index < 2 ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-gray-50'
+              }`}
           >
             <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 mb-2">
               <div className="flex items-center gap-2 min-w-0">

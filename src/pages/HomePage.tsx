@@ -33,13 +33,17 @@ const TOURNAMENT_TYPES = [
   { value: 'mixed-double', label: "Mixed Double" },
   { value: 'mixed-single', label: "Mixed Single" }
 ];
-
-
+const TOURNAMENT_STRUCTURES = [
+  { value: 'round-robin', label: 'Round Robin' },
+  { value: 'groups', label: 'Groups' },
+  { value: 'knockout', label: 'Knockout' }
+];
 const HomePage = ({ user }: HomePageProps) => {
   const navigate = useNavigate();
   const [tournamentName, setTournamentName] = useState('');
   const [venue, setVenue] = useState(VENUES[0]);
   const [tournamentType, setTournamentType] = useState(TOURNAMENT_TYPES[0].value);
+  const [tournamentStructure, setTournamentStructure] = useState(TOURNAMENT_STRUCTURES[0].value);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [toast, setToast] = useState<{ title: string; description: string; variant: 'success' | 'error' } | null>(null);
   const [displayName, setDisplayName] = useState('User');
@@ -87,7 +91,8 @@ const HomePage = ({ user }: HomePageProps) => {
         name: tournamentName,
         created_by: user.id,
         venue: venue,
-        type: tournamentType
+        type: tournamentType,
+        structure: tournamentStructure
       })
       .select()
       .single();
@@ -147,7 +152,8 @@ const HomePage = ({ user }: HomePageProps) => {
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
               <h2 className="text-2xl font-semibold mb-4">Create New Tournament</h2>
-              <div className="space-y-4">
+
+              <div className="space-y-4 mb-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Tournament Name
@@ -180,6 +186,23 @@ const HomePage = ({ user }: HomePageProps) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tournament Structure
+                  </label>
+                  <select
+                    value={tournamentStructure}
+                    onChange={(e) => setTournamentStructure(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    {TOURNAMENT_STRUCTURES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Tournament Type
                   </label>
                   <select
@@ -194,15 +217,15 @@ const HomePage = ({ user }: HomePageProps) => {
                     ))}
                   </select>
                 </div>
-
-                <button
-                  onClick={handleCreateTournament}
-                  disabled={!tournamentName.trim()}
-                  className="w-full px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Create Tournament
-                </button>
               </div>
+
+              <button
+                onClick={handleCreateTournament}
+                disabled={!tournamentName.trim()}
+                className="w-full px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Create Tournament
+              </button>
             </div>
 
             <div className="bg-white rounded-xl shadow-lg p-6">
@@ -234,6 +257,13 @@ const HomePage = ({ user }: HomePageProps) => {
                               <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                                 {/* @ts-ignore */}
                                 {tournament.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              </span>
+                            )}
+                            {/* @ts-ignore */}
+                            {tournament.structure && (
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                {/* @ts-ignore */}
+                                {tournament.structure.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               </span>
                             )}
                           </div>
@@ -299,27 +329,25 @@ const HomePage = ({ user }: HomePageProps) => {
             </div>
           </div>
         </div>
-
-        {toast && (
-          <Toast className={`${toast.variant === 'success' ? 'bg-green-50' : 'bg-red-50'
-            } `}>
-            <div className="grid gap-1">
-              <ToastTitle className={`${toast.variant === 'success' ? 'text-green-900' : 'text-red-900'
-                } `}>
-                {toast.title}
-              </ToastTitle>
-              <ToastDescription className={`${toast.variant === 'success' ? 'text-green-700' : 'text-red-700'
-                } `}>
-                {toast.description}
-              </ToastDescription>
-            </div>
-            <ToastClose />
-          </Toast>
-        )}
+        {
+          toast && (
+            <Toast className={`${toast.variant === 'success' ? 'bg-green-50' : 'bg-red-50'}`}>
+              <div className="grid gap-1">
+                <ToastTitle className={`${toast.variant === 'success' ? 'text-green-900' : 'text-red-900'}`}>
+                  {toast.title}
+                </ToastTitle>
+                <ToastDescription className={`${toast.variant === 'success' ? 'text-green-700' : 'text-red-700'}`}>
+                  {toast.description}
+                </ToastDescription>
+              </div>
+              <ToastClose />
+            </Toast>
+          )
+        }
         <ToastViewport />
-      </ToastProvider>
-    </div>
+      </ToastProvider >
+    </div >
   );
-}
+};
 
 export default HomePage;

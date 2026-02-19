@@ -12,7 +12,7 @@ import UserDropdown from '@/components/UserDropdown';
 import { showPushNotification } from '@/lib/notifications';
 import { useAdmin } from '@/contexts/AdminContext';
 import {
-  generateRoundRobinMatches,
+  generateMatches,
   calculateTeamStats,
   getTopTeams,
   generateFinalMatch,
@@ -121,7 +121,8 @@ function TournamentPage({ user }: TournamentPageProps) {
           const transformedTeams = teamsData.map(team => ({
             ...team,
             leadPoints: team.lead_points ?? 0,
-            matchesPlayed: team.matches_played ?? 0
+            matchesPlayed: team.matches_played ?? 0,
+            groupId: team.group_id
           }));
           setTeams(transformedTeams);
         }
@@ -191,7 +192,8 @@ function TournamentPage({ user }: TournamentPageProps) {
       const transformedTeam = {
         ...newTeam,
         leadPoints: newTeam.lead_points ?? 0,
-        matchesPlayed: newTeam.matches_played ?? 0
+        matchesPlayed: newTeam.matches_played ?? 0,
+        groupId: newTeam.group_id
       };
       setTeams([...teams, transformedTeam]);
 
@@ -216,7 +218,7 @@ function TournamentPage({ user }: TournamentPageProps) {
     if (!tournamentId || (!isCreator && !isAdmin)) return;
 
     setIsProcessing(true);
-    const generatedMatches = generateRoundRobinMatches(teams);
+    const generatedMatches = generateMatches(teams, tournament.structure as any || 'round-robin');
 
     const { data: newMatches } = await supabase
       .from('matches')
@@ -226,7 +228,8 @@ function TournamentPage({ user }: TournamentPageProps) {
           team1_id: match.teams[0]?.id,
           team2_id: match.teams[1]?.id,
           match_number: index + 1,
-          round: match.round
+          round: match.round,
+          group_id: match.groupId
         }))
       )
       .select(`
@@ -244,7 +247,8 @@ function TournamentPage({ user }: TournamentPageProps) {
         winner: match.winner_id,
         pointDifference: match.point_difference,
         matchNumber: match.match_number,
-        round: match.round
+        round: match.round,
+        groupId: match.group_id
       }));
       setMatches(formattedMatches);
 
@@ -469,7 +473,8 @@ function TournamentPage({ user }: TournamentPageProps) {
         const transformedTeams = freshTeamsData.map(team => ({
           ...team,
           leadPoints: team.lead_points ?? 0,
-          matchesPlayed: team.matches_played ?? 0
+          matchesPlayed: team.matches_played ?? 0,
+          groupId: team.group_id
         }));
 
         const topTeams = getTopTeams(transformedTeams, 2);
@@ -501,7 +506,9 @@ function TournamentPage({ user }: TournamentPageProps) {
             winner: createdFinalMatch.winner_id,
             pointDifference: createdFinalMatch.point_difference,
             matchNumber: createdFinalMatch.match_number,
-            round: createdFinalMatch.round
+            round: createdFinalMatch.round,
+            groupId: createdFinalMatch.group_id,
+            nextMatchId: createdFinalMatch.next_match_id
           };
 
           setFinalMatch(formattedFinalMatch);
@@ -611,12 +618,12 @@ function TournamentPage({ user }: TournamentPageProps) {
                   <TrendingUp className="w-6 h-6" />
                 </button>
                 {/* @ts-ignore */}
-              {tournament.type && (
-                <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                  {/* @ts-ignore */}
-                  {tournament.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </span>
-              )}
+                {tournament.type && (
+                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    {/* @ts-ignore */}
+                    {tournament.type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </span>
+                )}
                 <UserDropdown displayName={displayName} />
               </div>
             </div>
@@ -737,11 +744,28 @@ function TournamentPage({ user }: TournamentPageProps) {
               )}
 
               {matches.length > 0 && (
-                <TeamStats
-                  teams={teams}
-                  tournamentStatus={tournament.status}
-                  tournamentId={tournament.id}
-                />
+                tournament.structure === 'groups' ? (
+                  <>
+                    <TeamStats
+                      teams={teams.filter(t => t.groupId === 'A')}
+                      tournamentStatus={tournament.status}
+                      tournamentId={tournament.id}
+                      title="Group A Standings"
+                    />
+                    <TeamStats
+                      teams={teams.filter(t => t.groupId === 'B')}
+                      tournamentStatus={tournament.status}
+                      tournamentId={tournament.id}
+                      title="Group B Standings"
+                    />
+                  </>
+                ) : (
+                  <TeamStats
+                    teams={teams}
+                    tournamentStatus={tournament.status}
+                    tournamentId={tournament.id}
+                  />
+                )
               )}
             </div>
 
@@ -775,18 +799,58 @@ function TournamentPage({ user }: TournamentPageProps) {
                 </div>
               )}
 
-              <Bracket
-                matches={matches.map(match => ({
-                  ...match,
-                  tournamentStatus: tournament.status
-                }))}
-                finalMatch={finalMatch ? {
-                  ...finalMatch,
-                  tournamentStatus: tournament.status
-                } : null}
-                onSubmitScores={handleSubmitScores}
-                canEdit={true}
-              />
+              {tournament.structure === 'groups' ? (
+                <>
+                  {['A', 'B'].map(group => (
+                    <div key={group} className="mb-8">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4 px-2 border-l-4 border-indigo-500">
+                        Group {group} Matches
+                      </h3>
+                      <Bracket
+                        matches={matches
+                          .filter(m => m.groupId === group)
+                          .map(match => ({
+                            ...match,
+                            tournamentStatus: tournament.status
+                          }))}
+                        finalMatch={null}
+                        onSubmitScores={handleSubmitScores}
+                        canEdit={true}
+                      />
+                    </div>
+                  ))}
+                  {/* Show Final Match if exists, separate from groups */}
+                  {finalMatch && (
+                    <div className="mt-8 border-t pt-8">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4 px-2 border-l-4 border-yellow-500">
+                        Championship
+                      </h3>
+                      <Bracket
+                        matches={[]}
+                        finalMatch={{
+                          ...finalMatch,
+                          tournamentStatus: tournament.status
+                        }}
+                        onSubmitScores={handleSubmitScores}
+                        canEdit={true}
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <Bracket
+                  matches={matches.map(match => ({
+                    ...match,
+                    tournamentStatus: tournament.status
+                  }))}
+                  finalMatch={finalMatch ? {
+                    ...finalMatch,
+                    tournamentStatus: tournament.status
+                  } : null}
+                  onSubmitScores={handleSubmitScores}
+                  canEdit={true}
+                />
+              )}
             </div>
           </div>
         </div>
