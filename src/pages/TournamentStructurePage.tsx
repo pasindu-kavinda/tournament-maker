@@ -4,10 +4,10 @@ import { ArrowLeft, Users, Trophy } from 'lucide-react';
 
 export default function TournamentStructurePage() {
     const navigate = useNavigate();
-    const [selectedTeamCount, setSelectedTeamCount] = useState<4 | 5 | 6>(4);
+    const [selectedTeamCount, setSelectedTeamCount] = useState<4 | 5 | 6 | 7 | 8>(4);
     const [hoveredTeam, setHoveredTeam] = useState<number | null>(null);
 
-    const structures: Record<4 | 5 | 6, number[][]> = {
+    const structures: Record<4 | 5 | 6 | 7 | 8, number[][]> = {
         4: [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]],
         5: [
             [0, 1], [2, 3], [0, 4], [1, 3], [4, 2],
@@ -17,6 +17,19 @@ export default function TournamentStructurePage() {
             [0, 5], [1, 2], [3, 4], [0, 2], [1, 5],
             [3, 0], [2, 4], [1, 3], [5, 4], [0, 1],
             [2, 5], [4, 1], [3, 2], [0, 4], [5, 3]
+        ],
+        7: [
+            [1, 6], [2, 5], [3, 4], [0, 1], [2, 6], [3, 5],
+            [0, 2], [3, 6], [4, 5], [0, 3], [1, 2], [4, 6],
+            [0, 4], [1, 3], [5, 6], [0, 5], [1, 4], [2, 3],
+            [0, 6], [1, 5], [2, 4]
+        ],
+        8: [
+            [0, 1], [2, 7], [3, 6], [4, 5], [0, 7], [1, 6],
+            [2, 5], [3, 4], [0, 6], [7, 5], [1, 4], [2, 3],
+            [0, 5], [6, 4], [7, 3], [1, 2], [0, 4], [5, 3],
+            [6, 2], [7, 1], [0, 3], [4, 2], [5, 1], [6, 7],
+            [0, 2], [3, 1], [4, 7], [5, 6]
         ]
     };
 
@@ -29,6 +42,8 @@ export default function TournamentStructurePage() {
             'bg-yellow-100 text-yellow-700 border-yellow-200',
             'bg-purple-100 text-purple-700 border-purple-200',
             'bg-pink-100 text-pink-700 border-pink-200',
+            'bg-orange-100 text-orange-700 border-orange-200',
+            'bg-cyan-100 text-cyan-700 border-cyan-200',
         ];
         return colors[index % colors.length];
     };
@@ -53,13 +68,13 @@ export default function TournamentStructurePage() {
                     <div className="p-6 bg-indigo-600 text-white">
                         <h2 className="text-xl font-semibold mb-4">Select Team Count</h2>
                         <div className="flex flex-wrap gap-2">
-                            {[4, 5, 6].map((count) => (
+                            {[4, 5, 6, 7, 8].map((count) => (
                                 <button
                                     key={count}
-                                    onClick={() => setSelectedTeamCount(count as 4 | 5 | 6)}
+                                    onClick={() => setSelectedTeamCount(count as 4 | 5 | 6 | 7 | 8)}
                                     className={`px-6 py-2 rounded-full font-medium transition-all ${selectedTeamCount === count
-                                            ? 'bg-white text-indigo-600 shadow-lg scale-105'
-                                            : 'bg-indigo-500/50 hover:bg-indigo-500 text-indigo-100'
+                                        ? 'bg-white text-indigo-600 shadow-lg scale-105'
+                                        : 'bg-indigo-500/50 hover:bg-indigo-500 text-indigo-100'
                                         }`}
                                 >
                                     {count} Teams
@@ -87,8 +102,8 @@ export default function TournamentStructurePage() {
                                             <div
                                                 key={idx}
                                                 className={`flex items-center justify-between p-3 rounded-xl border transition-all ${isHighlighted
-                                                        ? 'bg-indigo-50 border-indigo-300 shadow-md scale-[1.02]'
-                                                        : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                                                    ? 'bg-indigo-50 border-indigo-300 shadow-md scale-[1.02]'
+                                                    : 'bg-gray-50 border-gray-100 hover:border-gray-200'
                                                     }`}
                                             >
                                                 <span className="text-xs font-bold text-gray-400 w-8">#{idx + 1}</span>
@@ -122,8 +137,8 @@ export default function TournamentStructurePage() {
                                         <div
                                             key={idx}
                                             className={`p-3 rounded-xl border-2 cursor-default transition-all ${hoveredTeam === idx
-                                                    ? 'bg-indigo-50 border-indigo-400 shadow-md'
-                                                    : 'bg-white border-transparent shadow-sm hover:shadow-md'
+                                                ? 'bg-indigo-50 border-indigo-400 shadow-md'
+                                                : 'bg-white border-transparent shadow-sm hover:shadow-md'
                                                 }`}
                                             onMouseEnter={() => setHoveredTeam(idx)}
                                             onMouseLeave={() => setHoveredTeam(null)}
