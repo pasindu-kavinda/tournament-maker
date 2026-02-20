@@ -247,3 +247,74 @@ export function generateCrossedSemiFinals(groupATeams: Team[], groupBTeams: Team
 
   return [match1, match2];
 }
+
+/**
+ * Generates extra matches for smaller groups so every group has the same
+ * number of regular matches. Each extra match is a rematch of an existing
+ * pairing (teams swapped) so the second encounter is clearly distinct.
+ *
+ * Returns only the NEW matches that need to be inserted; existing matches
+ * are not modified.
+ */
+export function generateBalancedGroupMatches(
+  existingMatches: Match[],
+  startMatchNum: number
+): Match[] {
+  // Collect group IDs from regular matches only
+  const regularMatches = existingMatches.filter(m => m.round === 'regular');
+
+  // Build a map of groupId → matches
+  const groupMatchMap = new Map<string, Match[]>();
+  regularMatches.forEach(m => {
+    const gid = m.groupId ?? '__none__';
+    if (!groupMatchMap.has(gid)) groupMatchMap.set(gid, []);
+    groupMatchMap.get(gid)!.push(m);
+  });
+
+  // Find the maximum match count across all groups
+  let maxCount = 0;
+  groupMatchMap.forEach(gMatches => {
+    if (gMatches.length > maxCount) maxCount = gMatches.length;
+  });
+
+  const newMatches: Match[] = [];
+  let matchNum = startMatchNum;
+
+  groupMatchMap.forEach((gMatches, groupId) => {
+    if (gMatches.length < maxCount) {
+      const needed = maxCount - gMatches.length;
+      // Cycle through the existing pairings to fill up the count.
+      // We swap team order (team2 vs team1) to make it a rematch.
+      for (let i = 0; i < needed; i++) {
+        const source = gMatches[i % gMatches.length];
+        const [t1, t2] = source.teams;
+        newMatches.push({
+          id: crypto.randomUUID(),
+          teams: [t2, t1], // reversed for rematch flavour
+          scores: [null, null],
+          isCompleted: false,
+          round: 'regular',
+          matchNumber: matchNum++,
+          groupId: groupId === '__none__' ? undefined : groupId,
+        });
+      }
+    }
+  });
+
+  return newMatches;
+}
+
+/**
+ * Returns true when at least two groups have different regular-match counts.
+ */
+export function groupsAreImbalanced(matches: Match[]): boolean {
+  const regularMatches = matches.filter(m => m.round === 'regular');
+  const countMap = new Map<string, number>();
+  regularMatches.forEach(m => {
+    const gid = m.groupId ?? '__none__';
+    countMap.set(gid, (countMap.get(gid) ?? 0) + 1);
+  });
+  if (countMap.size < 2) return false;
+  const counts = Array.from(countMap.values());
+  return counts.some(c => c !== counts[0]);
+}

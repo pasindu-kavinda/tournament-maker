@@ -18,6 +18,8 @@ import {
   generateFinalMatch,
   sortTeamsByStats,
   generateCrossedSemiFinals,
+  generateBalancedGroupMatches,
+  groupsAreImbalanced,
 } from '../utils/bracketUtils';
 import FinalMatchCard from '../components/FinalMatchCard';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
@@ -43,6 +45,7 @@ function TournamentPage({ user }: TournamentPageProps) {
   const [displayName, setDisplayName] = useState('User');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isBalancing, setIsBalancing] = useState(false);
 
   useEffect(() => {
     if (tournamentId) {
@@ -488,6 +491,59 @@ function TournamentPage({ user }: TournamentPageProps) {
 
 
 
+  const handleBalanceMatches = async () => {
+    if (!tournamentId || (!isCreator && !isAdmin)) return;
+
+    try {
+      setIsBalancing(true);
+
+      // Get the current highest match number to continue numbering
+      const lastMatchNum = matches.reduce((max, m) => Math.max(max, m.matchNumber ?? 0), 0);
+
+      const extraMatches = generateBalancedGroupMatches(matches, lastMatchNum + 1);
+
+      if (extraMatches.length === 0) return;
+
+      const { data: newMatches } = await supabase
+        .from('matches')
+        .insert(
+          extraMatches.map(m => ({
+            tournament_id: tournamentId,
+            team1_id: m.teams[0]?.id,
+            team2_id: m.teams[1]?.id,
+            match_number: m.matchNumber,
+            round: 'regular',
+            group_id: m.groupId ?? null,
+          }))
+        )
+        .select(`
+          *,
+          team1:teams!matches_team1_id_fkey(*),
+          team2:teams!matches_team2_id_fkey(*)
+        `);
+
+      if (newMatches) {
+        const formatted = newMatches.map(match => ({
+          ...match,
+          teams: [match.team1, match.team2],
+          scores: [match.team1_score, match.team2_score],
+          isCompleted: match.is_completed,
+          winner: match.winner_id,
+          pointDifference: match.point_difference,
+          matchNumber: match.match_number,
+          round: match.round,
+          groupId: match.group_id,
+        }));
+        setMatches(prev => [...prev, ...formatted]);
+      }
+    } catch (error) {
+      console.error('Error balancing matches:', error);
+      alert(`Failed to balance matches: ${(error as Error).message}`);
+    } finally {
+      setIsBalancing(false);
+    }
+  };
+
   const handleGenerateFinalMatch = async () => {
     if (!tournamentId || (!isCreator && !isAdmin)) return;
 
@@ -890,6 +946,41 @@ function TournamentPage({ user }: TournamentPageProps) {
             </div>
 
             <div className="space-y-4 xs:space-y-6 lg:space-y-8">
+              {/* Balance Matches button — shown when groups are imbalanced and no semi-finals yet */}
+              {matches.length > 0
+                && tournament.structure === 'groups'
+                && !matches.some(m => m.round === 'semi-final')
+                && !finalMatch
+                && groupsAreImbalanced(matches)
+                && (isCreator || isAdmin) && (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl shadow-lg p-4 xs:p-6 mb-4">
+                    <div className="flex items-center gap-2 xs:gap-3 mb-3">
+                      <span className="text-2xl">⚖️</span>
+                      <div>
+                        <h3 className="text-base xs:text-lg font-bold text-blue-900">Groups are Unbalanced</h3>
+                        <p className="text-blue-700 text-xs xs:text-sm">One group has fewer matches. Click to double that group's matches so both groups have equal play time.</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleBalanceMatches}
+                      disabled={isBalancing}
+                      className="w-full flex items-center justify-center gap-2 px-4 xs:px-6 py-2.5 xs:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed text-sm xs:text-base"
+                    >
+                      {isBalancing ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                          <span>Balancing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>⚖️</span>
+                          <span>Balance Group Matches</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
               {matches.length > 0 && !finalMatch && matches.every(m => m.isCompleted) && (isCreator || isAdmin) && (
                 <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl shadow-lg p-4 xs:p-6">
                   <div className="flex items-center gap-2 xs:gap-3 mb-4">
