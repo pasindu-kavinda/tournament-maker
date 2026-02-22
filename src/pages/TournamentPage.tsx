@@ -241,19 +241,28 @@ function TournamentPage({ user }: TournamentPageProps) {
   const handleGenerateMatches = async () => {
     if (!tournamentId || (!isCreator && !isAdmin)) return;
 
+    // For groups structure, make sure every team has been assigned to A or B
+    if (tournament.structure === 'groups') {
+      const unassigned = teams.filter(t => !t.groupId || (t.groupId !== 'A' && t.groupId !== 'B'));
+      if (unassigned.length > 0) {
+        alert(`Please assign all teams to Group A or B before generating matches.\nUnassigned: ${unassigned.map(t => t.name).join(', ')}`);
+        return;
+      }
+    }
+
     setIsProcessing(true);
     const generatedMatches = generateMatches(teams, tournament.structure as any || 'round-robin');
 
     const { data: newMatches } = await supabase
       .from('matches')
       .insert(
-        generatedMatches.map((match, index) => ({
+        generatedMatches.map((match) => ({
           tournament_id: tournamentId,
           team1_id: match.teams[0]?.id,
           team2_id: match.teams[1]?.id,
-          match_number: index + 1,
+          match_number: match.matchNumber, // use the generator's numbering, not array index
           round: match.round,
-          group_id: match.groupId
+          group_id: match.groupId ?? null
         }))
       )
       .select(`
@@ -292,6 +301,7 @@ function TournamentPage({ user }: TournamentPageProps) {
 
     setIsProcessing(false);
   };
+
 
   const updateTeamStats = async (updatedMatches: Match[]) => {
     // Pass current 'teams' state to ensure all teams are included in calculation
@@ -952,6 +962,7 @@ function TournamentPage({ user }: TournamentPageProps) {
                 && !matches.some(m => m.round === 'semi-final')
                 && !finalMatch
                 && groupsAreImbalanced(matches)
+                && !matches.some(m => m.isCompleted)  // only before any match is played
                 && (isCreator || isAdmin) && (
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl shadow-lg p-4 xs:p-6 mb-4">
                     <div className="flex items-center gap-2 xs:gap-3 mb-3">

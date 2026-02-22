@@ -11,12 +11,9 @@ export function generateMatches(teams: Team[], structure: TournamentStructure = 
 }
 
 function generateGroupMatches(teams: Team[]): Match[] {
-  const matches: Match[] = [];
-
-  // Split teams into two groups
-  const midPoint = Math.ceil(teams.length / 2);
-  const groupA = teams.slice(0, midPoint);
-  const groupB = teams.slice(midPoint);
+  // Use the user-assigned groupId to split teams — never split by position
+  const groupA = teams.filter(t => t.groupId === 'A');
+  const groupB = teams.filter(t => t.groupId === 'B');
 
   // Helper to generate matches for a specific group
   const generateForGroup = (groupTeams: Team[], groupId: string, startMatchNum: number) => {
