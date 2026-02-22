@@ -15,18 +15,15 @@ function generateGroupMatches(teams: Team[]): Match[] {
   const groupA = teams.filter(t => t.groupId === 'A');
   const groupB = teams.filter(t => t.groupId === 'B');
 
-  // Helper to generate matches for a specific group
-  const generateForGroup = (groupTeams: Team[], groupId: string, startMatchNum: number) => {
-    const groupMatches = generateRoundRobinMatches(groupTeams);
-    return groupMatches.map(m => ({
-      ...m,
-      groupId,
-      matchNumber: m.matchNumber + startMatchNum - 1 // Adjust match numbers
-    }));
+  // Each group gets its own independent 1-based match numbering.
+  // No unique constraint on match_number in the DB, so duplicates across groups are safe.
+  const generateForGroup = (groupTeams: Team[], groupId: string) => {
+    return generateRoundRobinMatches(groupTeams).map(m => ({ ...m, groupId }));
+    // matchNumber from generateRoundRobinMatches is already 1-based per group
   };
 
-  const matchesA = generateForGroup(groupA, 'A', 1);
-  const matchesB = generateForGroup(groupB, 'B', matchesA.length + 1);
+  const matchesA = generateForGroup(groupA, 'A');
+  const matchesB = generateForGroup(groupB, 'B');
 
   return [...matchesA, ...matchesB];
 }
@@ -255,7 +252,7 @@ export function generateCrossedSemiFinals(groupATeams: Team[], groupBTeams: Team
  */
 export function generateBalancedGroupMatches(
   existingMatches: Match[],
-  startMatchNum: number
+  _startMatchNum: number  // kept for API compat, unused — we compute per-group instead
 ): Match[] {
   // Collect group IDs from regular matches only
   const regularMatches = existingMatches.filter(m => m.round === 'regular');
@@ -275,13 +272,14 @@ export function generateBalancedGroupMatches(
   });
 
   const newMatches: Match[] = [];
-  let matchNum = startMatchNum;
 
   groupMatchMap.forEach((gMatches, groupId) => {
     if (gMatches.length < maxCount) {
       const needed = maxCount - gMatches.length;
-      // Cycle through the existing pairings to fill up the count.
-      // We swap team order (team2 vs team1) to make it a rematch.
+      // Continue match numbering within this group (independent per-group numbering)
+      const groupMaxNum = Math.max(...gMatches.map(m => m.matchNumber ?? 0));
+      let localNum = groupMaxNum + 1;
+
       for (let i = 0; i < needed; i++) {
         const source = gMatches[i % gMatches.length];
         const [t1, t2] = source.teams;
@@ -291,7 +289,7 @@ export function generateBalancedGroupMatches(
           scores: [null, null],
           isCompleted: false,
           round: 'regular',
-          matchNumber: matchNum++,
+          matchNumber: localNum++,
           groupId: groupId === '__none__' ? undefined : groupId,
         });
       }
